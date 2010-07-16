@@ -1,3 +1,14 @@
+/**********************************************************************************//**
+ * \file main.cpp
+ *
+ * \mainpage GPM - Grid Property Modeller
+ *
+ * \author Kjetil A. Johannessen
+ * \date July 2010
+ *
+ * \brief Main program for generating topology relations
+ *************************************************************************************/
+
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -114,6 +125,34 @@ vector<shared_ptr<SplineVolume> > readInput(const char *filename) {
 	inFile.close();
 	return results;
 }
+
+/**********************************************************************************//**
+ * \brief Main program for the generation of the local-to-global mapping (or .gno files)
+ *
+ * This program compiles into a command-line tool that takes as input all the spline volumes
+ * given as one or more .g2-files and creates the topology based on these, after which the
+ * local-to-global mapping is created. The mapping is then stored as a .gno-file which has the
+ * following format (all numbers as integers) <br>
+ * <Block#0> <br>
+ * <Corner#0> <Corner#1> ... <Corner#7> <br>
+ * <Line#0 start> <Line#0 step> <br>
+ * <Line#1 start> <Line#1 step> <br>
+ * ... <br>
+ * <Line#11 start> <Line#11 step> <br>
+ * <Face#0 start> <Face#0 step1> <Face#0 step2> <br>
+ * <Face#1 start> <Face#1 step1> <Face#1 step2> <br>
+ * ... <br>
+ * <Face#5 start> <Face#5 step1> <Face#1 step2> <br>
+ * <Block#1> <br>
+ * ...
+ *
+ * The program accepts the following parameters 
+ * \arg -v : verbose output (for debugging purposes mostly)
+ *
+ * Note that in case of a model with left-handed system is given as input, the program will
+ * automatically reparametrize this to be right-handed. The reparameterized model will be stored
+ * as reparameterized.g2 and a .gno-file based on the new model will be generated.
+ *************************************************************************************/
 
 int main(int argc, char **argv) {
 	vector<shared_ptr<SplineVolume> > volumes = processParameters(argc, argv);

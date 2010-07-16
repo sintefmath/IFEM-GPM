@@ -1,8 +1,21 @@
+/**********************************************************************************//**
+ * \file Face.cpp
+ *
+ * \author Kjetil A. Johannessen
+ *
+ * \date July 2010
+ *
+ *************************************************************************************/
 #include "primitives.h"
 #include <iostream>
 
 using namespace std;
 
+/**********************************************************************************//**
+ * \brief Basic constructor for the Face class
+ * \param n1 Number of internal controlpoints in the first parametric direction
+ * \param n2 Number of internal controlpoints in the second parametric direction
+ *************************************************************************************/
 Face::Face(int n1, int n2) {
 	cp.resize(n1);
 	for(int u=0; u<n1; u++)
@@ -17,6 +30,16 @@ Face::Face(int n1, int n2) {
 	v_reverse  = false;
 }
 
+/**********************************************************************************//**
+ * \brief Test face equality
+ * \param f face to be compared with this
+ * \param tol Equality-tolerance for the euclidean distance between the control points
+ * \return True if control points are equal (up to tolerance)
+ * 
+ * In the case of equality being detected, the function will set the uv_flip, u_reverse
+ * and v_reverse variables to their correct state. These are being set with respect to 
+ * *this' relation to *f.
+ *************************************************************************************/
 bool Face::equals(Face *f, double tol) {
 	int n1  = cp.size();
 	int n2  = cp[0].size();
@@ -70,6 +93,7 @@ bool Face::equals(Face *f, double tol) {
 }
 
 void Face::write(std::ostream &os) const {
+	// do nothing
 }
 
 void Face::read(std::istream &is) {

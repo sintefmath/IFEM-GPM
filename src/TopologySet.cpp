@@ -1,3 +1,11 @@
+/**********************************************************************************//**
+ * \file TopolgySet.cpp
+ *
+ * \author Kjetil A. Johannessen
+ *
+ * \date July 2010
+ *
+ *************************************************************************************/
 #include "TopologySet.h"
 #include "primitives.h"
 
@@ -5,11 +13,21 @@ using namespace std;
 using namespace Go;
 using boost::shared_ptr;
 
+/**********************************************************************************//**
+ * \brief TopologySet constructor
+ * \param spline_volumes All spline volumes to be considered part of this model
+ * \param tol            Tolerance used when checking for control point equality (measured in euclidean distance)
+ *
+ * Note that the constructor is NOT creating the topology. It should usually immediately be followed by a call to
+ * buildTopology().
+ *************************************************************************************/
 TopologySet::TopologySet(vector<shared_ptr<SplineVolume> > &spline_volumes, double tol) {
 	this->tol = tol;
 	spline_volumes_ = spline_volumes;
 }
 
+
+/*! \brief build the topology given by all vertex,line,face and volume relations */
 void TopologySet::buildTopology() {
 	for(uint i=0; i<spline_volumes_.size(); i++) {
 		bool rat = spline_volumes_[i]->rational();
@@ -24,7 +42,7 @@ void TopologySet::buildTopology() {
 		Volume *vol = new Volume(i);
 		addVolume(vol);
 
-		// add all corner vertices to the apropriate places
+		// add all corner vertices to the appropriate places
 		int corner_index = 0;
 		for(int w=0; w<2; w++) {
 			for(int v=0; v<2; v++) {
@@ -168,6 +186,11 @@ void TopologySet::buildTopology() {
 
 }
 
+/**********************************************************************************//**
+ * \brief try to add a vertex to the set (keeping uniqueness)
+ * \param v Vertex to be added
+ * \return either *v or the Vertex already contained in the set and being equal to *v
+ *************************************************************************************/
 Vertex* TopologySet::addVertex(Vertex *v) {
 	set<Vertex*>::iterator it; 
 	for(it=vertex_.begin(); it != vertex_.end(); it++) {
@@ -181,6 +204,11 @@ Vertex* TopologySet::addVertex(Vertex *v) {
 	return v;
 }
 
+/**********************************************************************************//**
+ * \brief try to add a line to the set (keeping uniqueness)
+ * \param l Line to be added
+ * \return either *l or the Line already contained in the set and being equal to *l
+ *************************************************************************************/
 Line* TopologySet::addLine(Line* l) {
 	set<Line*>::iterator it; 
 	for(it=line_.begin(); it != line_.end(); it++) {
@@ -194,6 +222,11 @@ Line* TopologySet::addLine(Line* l) {
 	return l;
 }
 
+/**********************************************************************************//**
+ * \brief try to add a face to the set (keeping uniqueness)
+ * \param f Face to be added
+ * \return either *f or the Face already contained in the set and being equal to *f
+ *************************************************************************************/
 Face* TopologySet::addFace(Face* f) {
 	set<Face*>::iterator it;
 	for(it=face_.begin(); it != face_.end(); it++) {
@@ -217,6 +250,10 @@ Face* TopologySet::addFace(Face* f) {
 	return f;
 }
 
+/**********************************************************************************//**
+ * \brief try to add a volume to the set (uniqueness not tested)
+ * \param v volume to be added
+ *************************************************************************************/
 void TopologySet::addVolume(Volume* v) {
 	volume_.insert(v);
 }
@@ -245,18 +282,22 @@ set<Vertex*>::iterator TopologySet::vertex_end() {
 	return vertex_.end();
 }
 
+/*! \brief Number of unique vertices in the model */
 int TopologySet::numbVertices() const {
 	return vertex_.size();
 }
 
+/*! \brief Number of unique lines in the model */
 int TopologySet::numbLines() const {
 	return line_.size();
 }
 
+/*! \brief Number of unique faces in the model */
 int TopologySet::numbFaces() const {
 	return face_.size();
 }
 
+/*! \brief Number of unique volumes in the model */
 int TopologySet::numbVolumes() const {
 	return volume_.size();
 }
