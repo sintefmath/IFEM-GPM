@@ -34,6 +34,7 @@ class Volume {
 		Line   *line[12];
 		Face   *face[6];
 		int    id;
+		int    material_code; //!< Material properties
 };
 
 /**********************************************************************************//**
@@ -50,6 +51,7 @@ class Face : public Go::Streamable {
 	public:
 		Face(int n1, int n2);
 		bool equals(Face *f, double tol);
+		bool isDegen();
 		void write(std::ostream &os) const;
 		void read(std::istream &is);
 
@@ -61,6 +63,11 @@ class Face : public Go::Streamable {
 		bool   uv_flip;    //!< is the first/second parameter direction swapped on the twin face
 		bool   u_reverse;  //!< is the first parameter direction reversed
 		bool   v_reverse;  //!< is the second parameter direction reversed
+
+		bool   degen1;     //!< is the first parameter direction degenerated
+		bool   degen2;     //!< is the second parameter direction degenerated
+
+		int    bc_code;    //!< Boundary condition code
 };
 
 /**********************************************************************************//**
@@ -72,6 +79,7 @@ class Face : public Go::Streamable {
  *************************************************************************************/
 class Line : public Go::Streamable {
 	public:
+		Line();
 		bool equals(Line *l, double tol);
 		void write(std::ostream &os) const;
 		void read(std::istream &is);
@@ -81,6 +89,8 @@ class Line : public Go::Streamable {
 		std::set<Volume*> volume;  //!< Neighbouring volumes
 		Vertex *v1;                //!< Start or stop vertex.
 		Vertex *v2;                //!< Start or stop vertex.
+		int bc_code;               //!< Boundary condition code
+		bool degen;                //!< Is the line degenerated to a point
 };
 
 /**********************************************************************************//**
@@ -94,6 +104,8 @@ class Vertex {
 	public:
 		Go::Point cp;              //!< Defining control point
 		std::set<Volume*> volume;  //!< Neighbouring volumes
+		int bc_code;               //!< Boundary condition code
+		Vertex() { bc_code = -1; }
 };
 
 #endif

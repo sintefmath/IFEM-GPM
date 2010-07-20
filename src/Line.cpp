@@ -14,6 +14,12 @@
 using namespace std;
 using namespace Go;
 
+Line::Line() {
+	v1      = NULL;
+	v2      = NULL;
+	bc_code = -1;
+}
+
 /**********************************************************************************//**
  * \brief Checks for line equality by comparing all controlpoints
  * \param l The line which is to be compared

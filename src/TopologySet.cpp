@@ -1,5 +1,5 @@
 /**********************************************************************************//**
- * \file TopolgySet.cpp
+ * \file TopologySet.cpp
  *
  * \author Kjetil A. Johannessen
  *
@@ -14,20 +14,20 @@ using namespace Go;
 using boost::shared_ptr;
 
 /**********************************************************************************//**
- * \brief TopologySet constructor
+ * \brief Constructor
  * \param spline_volumes All spline volumes to be considered part of this model
  * \param tol            Tolerance used when checking for control point equality (measured in euclidean distance)
  *
  * Note that the constructor is NOT creating the topology. It should usually immediately be followed by a call to
  * buildTopology().
  *************************************************************************************/
-TopologySet::TopologySet(vector<shared_ptr<SplineVolume> > &spline_volumes, double tol) {
+TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes, double tol) {
 	this->tol = tol;
 	spline_volumes_ = spline_volumes;
 }
 
 
-/*! \brief build the topology given by all vertex,line,face and volume relations */
+/*! \brief build the topology given by all vertex, line, face and volume relations */
 void TopologySet::buildTopology() {
 	for(uint i=0; i<spline_volumes_.size(); i++) {
 		bool rat = spline_volumes_[i]->rational();
@@ -108,6 +108,7 @@ void TopologySet::buildTopology() {
 						start += step;
 					}
 					// cout << endl;
+					/*
 					if(degen) {
 						// cout << "Ignoring degenerate line\n";
 						delete line;
@@ -117,6 +118,11 @@ void TopologySet::buildTopology() {
 						line = addLine(line);
 						vol->line[lineCount] = line;
 					}
+					*/
+					line->degen = degen;
+					line->volume.insert(vol);
+					line = addLine(line);
+					vol->line[lineCount] = line;
 					lineCount++;
 				}
 			}
@@ -162,6 +168,7 @@ void TopologySet::buildTopology() {
 					coefNmb -= u_siz*du;
 					coefNmb += dv;
 				}
+				/*
 				if(degen1 && degen2)
 					// cout << "SURFACE DEGENERATES TO POINT\n";
 					;
@@ -176,14 +183,15 @@ void TopologySet::buildTopology() {
 					f = addFace(f);
 					vol->face[surfCount] = f;
 				}
-
+				*/
+				f->degen1 = degen1;
+				f->degen2 = degen2;
+				f = addFace(f);
+				vol->face[surfCount] = f;
 				surfCount++;
 			}
 		}
-
-
 	}
-
 }
 
 /**********************************************************************************//**
@@ -258,6 +266,48 @@ void TopologySet::addVolume(Volume* v) {
 	volume_.insert(v);
 }
 
+/*! \brief fetch all vertices on the boundary of the model */
+std::set<Vertex*> TopologySet::getBoundaryVertices() {
+	set<Vertex*> results;
+	return results;
+}
+
+/*! \brief fetch all lines on the boundary of the model */
+std::set<Line*> TopologySet::getBoundaryLines() {
+	set<Line*> results;
+	return results;
+}
+
+/*! \brief fetch all faces on the boundary of the model */
+std::set<Face*> TopologySet::getBoundaryFaces() {
+	set<Face*> results;
+	set<Face*>::iterator it;
+	for(it=face_.begin(); it != face_.end(); it++)
+		if((*it)->v2 == NULL)
+			results.insert(*it);
+	return results;
+}
+
+/**********************************************************************************//**
+ * \brief fetch all boundary primitives
+ * \param [out] vertices Boundary vertices
+ * \param [out] lines    Boundary lines
+ * \param [out] faces    Boundary faces
+ *
+ * \todo Write this method as well as the other getBoundary-functions. Also make sure that
+ *       it is correctly detecting nasty things such as the pawn centerline-degen-face
+ *       as a non-boundary face
+ *
+ * An optimized version to get all boundaries. This is faster than sequentially calling
+ * getBoundaryVertices(),getBoundaryLines() and getBoundaryFaces().
+ *************************************************************************************/
+void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, std::set<Face*> faces) {
+	faces.clear();
+	lines.clear();
+	vertices.clear();
+	faces = getBoundaryFaces();
+}
+
 set<Face*>::iterator TopologySet::face_begin() {
 	return face_.begin();
 }
@@ -292,9 +342,29 @@ int TopologySet::numbLines() const {
 	return line_.size();
 }
 
+/*! \brief Number of unique lines which are not degenerated to points */
+int TopologySet::numbNonDegenLines() const {
+	int results = 0;
+	set<Line*>::iterator it;
+	for(it=line_.begin(); it != line_.end(); it++)
+		if( !(*it)->degen )
+			results++;
+	return results;
+}
+
 /*! \brief Number of unique faces in the model */
 int TopologySet::numbFaces() const {
 	return face_.size();
+}
+
+/*! \brief Number of unique faces which are not degenerated to lines or points */
+int TopologySet::numbNonDegenFaces() const {
+	int results = 0;
+	set<Face*>::iterator it;
+	for(it=face_.begin(); it != face_.end(); it++)
+		if( !(*it)->isDegen() )
+			results++;
+	return results;
 }
 
 /*! \brief Number of unique volumes in the model */

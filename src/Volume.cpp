@@ -18,7 +18,8 @@ using namespace std;
  * \param id Unique identification number
  *************************************************************************************/
 Volume::Volume(int id) {
-	this->id = id;
+	this->id      = id;
+	material_code = 0;
 }
 
 /**********************************************************************************//**

@@ -28,6 +28,7 @@ Face::Face(int n1, int n2) {
 	uv_flip    = false;
 	u_reverse  = false;
 	v_reverse  = false;
+	bc_code    = -1;
 }
 
 /**********************************************************************************//**
@@ -91,6 +92,12 @@ bool Face::equals(Face *f, double tol) {
 	}
 	return false;
 }
+
+/*! \brief Is face degenerated to point or line */
+bool Face::isDegen() {
+	return degen1 || degen2;
+}
+
 
 void Face::write(std::ostream &os) const {
 	// do nothing

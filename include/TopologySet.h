@@ -24,9 +24,16 @@ class TopologySet {
 		void buildTopology();
 		int numbVertices() const;
 		int numbLines() const;
+		int numbNonDegenLines() const;
 		int numbFaces() const;
+		int numbNonDegenFaces() const;
 		int numbVolumes() const;
 		
+		std::set<Vertex*> getBoundaryVertices();
+		std::set<Line*>   getBoundaryLines();
+		std::set<Face*>   getBoundaryFaces();
+		void              getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, std::set<Face*> faces);
+
 		std::set<Vertex*>::iterator vertex_begin();
 		std::set<Vertex*>::iterator vertex_end();
 		std::set<Line*>::iterator line_begin();
@@ -40,11 +47,12 @@ class TopologySet {
 		Line*   addLine(Line* l);
 		Vertex* addVertex(Vertex* v);
 
-		double tol;                  //!< Control point tolerance (given in euclidean distance)
-		std::set<Volume*> volume_;   //!< All unique volumes
-		std::set<Face*>   face_;     //!< All unique faces
-		std::set<Line*>   line_;     //!< All unique edge lines
-		std::set<Vertex*> vertex_;   //!< All unique corner vertices
+		double tol;                    //!< Control point tolerance (given in euclidean distance)
+		std::set<Volume*> volume_;     //!< All unique volumes
+		std::set<Face*>   face_;       //!< All unique (possible degenerate) faces
+		std::set<Line*>   line_;       //!< All unique (possible degenerate) edge lines
+		std::set<Vertex*> vertex_;     //!< All unique corner vertices
+ 
 		std::vector<boost::shared_ptr<Go::SplineVolume> > spline_volumes_; //!< Spline objects
 
 };
