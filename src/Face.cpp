@@ -28,7 +28,7 @@ Face::Face(int n1, int n2) {
 	uv_flip    = false;
 	u_reverse  = false;
 	v_reverse  = false;
-	bc_code    = -1;
+	bc_code    = 0;
 }
 
 /**********************************************************************************//**

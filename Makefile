@@ -9,6 +9,7 @@ GOTLIB	= -L/usr/local/lib/GoTools \
 CFLAGS = -Wall -g
 
 SRCS =	src/main.cpp \
+      	src/SplineModel.cpp \
       	src/TopologySet.cpp \
       	src/Line.cpp \
       	src/Volume.cpp \

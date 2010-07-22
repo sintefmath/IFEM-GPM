@@ -17,7 +17,7 @@ using namespace Go;
 Line::Line() {
 	v1      = NULL;
 	v2      = NULL;
-	bc_code = -1;
+	bc_code = 0;
 }
 
 /**********************************************************************************//**
@@ -58,6 +58,21 @@ void Line::write(ostream &os) const {
 
 void Line::read(std::istream &is) {
 	// do nothing
+}
+
+/**********************************************************************************//**
+ * \brief get the enumeration of the four edge lines corresponding to one face
+ * \param face local face enumeration
+ * \return vector containing the number to the four edges
+ *************************************************************************************/
+std::vector<int> Line::getLineEnumeration(int face) {
+	vector<int> results;
+
+	results.push_back( (face<2)*4 + face%2 + (face>4) );
+	results.push_back( 1+(face<4)+4*(face<2) + face%2 + (face>4) );
+	results.push_back( 4+(face<4)*4 + face%2 + (face>2)*(face%2) );
+	results.push_back( 5+(face<4)*4+(face<2) + face%2 + (face>2)*(face%2) );
+	return results;
 }
 
 /**********************************************************************************//**

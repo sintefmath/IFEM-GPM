@@ -13,11 +13,11 @@
 #include <fstream>
 #include <string.h>
 
+#include "SplineModel.h"
 #include "TopologySet.h"
 #include "primitives.h"
 
 #include <GoTools/trivariate/SplineVolume.h>
-#include <GoTools/geometry/ObjectHeader.h>
 
 typedef unsigned int uint;
 
@@ -33,37 +33,23 @@ File usage: gpm [-v] <inputFile> \n\
     <inputFile> : one or more .g2-files describing the spline volumes \n\
   FLAGS\n\
     -v          : verbose output";
+SplineModel model;
 
-/**********************************************************************************//**
- * \brief Global number ordering (gno) structure
- *
- * Contains all necessary information to go from any local enumeration (i,j,k) to a global enumeration.
- * One globNumber-struct should be available for each topological volume
- *************************************************************************************/
-typedef struct globNumber {
-	int vertex[8];          //!< global number of the 8 corner vertices
-	int edge[12];           //!< start number for the 12 edge lines
-	int edge_incr[12];      //!< +1 or -1 depending on whether the numbers are ascending or descending
-	int surface[6];         //!< start number for the edge faces
-	int surface_incr_i[6];  //!< increment by going in the first parametric direction
-	int surface_incr_j[6];  //!< increment by going in the second parametric direction
-	int volume;             //!< internal volume starting number
-} globNumber;
-
-bool enforceRightHandSystem(vector<shared_ptr<SplineVolume> > &volumes) ;
-vector<shared_ptr<SplineVolume> > readInput(const char *filename);
-void writeReparameterization(vector<shared_ptr<SplineVolume> > &volumes, const char* filename);
-vector<shared_ptr<SplineVolume> > processParameters(int argc, char** argv);
-
-vector<shared_ptr<SplineVolume> > processParameters(int argc, char** argv) {
+void processParameters(int argc, char** argv) {
 	bool fileRead = false;
-	vector<shared_ptr<SplineVolume> > results;
 	for(int argi=1; argi<argc; argi++) {
 		const char *arg = argv[argi];
 		if(strcmp(arg, "-v") == 0) {
 			verbose = true;
 		} else {
-			results = readInput(arg);
+			ifstream inFile;
+			inFile.open(arg);
+			if(!inFile.good()) {
+				cerr << "Error reading input file \"" << arg << "\"" << endl;
+				exit(1);
+			}
+			model.readSplines(inFile);
+			inFile.close();
 			fileRead = true;
 		}
 	}
@@ -71,67 +57,6 @@ vector<shared_ptr<SplineVolume> > processParameters(int argc, char** argv) {
 		cout << fileUsage << endl;
 		exit(1);
 	}
-	return results;
-}
-
-//! \todo Put this function into some class
-bool enforceRightHandSystem(vector<shared_ptr<SplineVolume> > &volumes) {
-	bool anything_switched = false;
-	for(uint i=0; i<volumes.size(); i++) {
-		// do test evaluation in the middle of the parametric domain
-		double u = (volumes[i]->startparam(0) + volumes[i]->endparam(0)) / 2;
-		double v = (volumes[i]->startparam(1) + volumes[i]->endparam(1)) / 2;
-		double w = (volumes[i]->startparam(2) + volumes[i]->endparam(2)) / 2;
-		vector<Point> results(4); // one position and three derivatives
-		volumes[i]->point(results, u, v, w, 1);
-		double jacobian = (results[1] % results[2])*results[3];
-		if(jacobian < 0) {
-			anything_switched = true;
-			volumes[i]->reverseParameterDirection(2);
-		}
-	}
-	return anything_switched;
-}
-
-//! \todo Put this function into some class
-void writeReparameterization(vector<shared_ptr<SplineVolume> > &volumes, const char* filename) {
-	ofstream outFile;
-	outFile.open(filename);
-	for(uint i=0; i<volumes.size(); i++) {
-		volumes[i]->writeStandardHeader(outFile);
-		volumes[i]->write(outFile);
-	}
-	outFile.close();
-}
-
-vector<shared_ptr<SplineVolume> > readInput(const char *filename) {
-	vector<shared_ptr<SplineVolume> > results;
-	ifstream inFile;
-	ObjectHeader head;
-	inFile.open(filename);
-	if(!inFile.good()) {
-		cerr << "Error reading input file \"" << filename << "\"" << endl;
-		exit(1);
-	}
-	while(!inFile.eof()) {
-		head.read(inFile);
-		if(head.classType() == Class_SplineVolume) {
-			shared_ptr<SplineVolume> v(new SplineVolume());
-			v->read(inFile);
-			results.push_back(v);
-			
-			if(verbose) {
-				cout << "SplineVolume succesfully read" << endl;
-			}
-		// } else if(head.classType == Class_SplineSurface) {  // should add support for this eventually
-		} else {
-			fprintf(stderr, "File \"%s\" contains unknown or unsupported class object\n", filename);
-			exit(1);
-		}
-		ws(inFile); // eats up as many whitespaces as it can
-	}
-	inFile.close();
-	return results;
 }
 
 /**********************************************************************************//**
@@ -163,260 +88,44 @@ vector<shared_ptr<SplineVolume> > readInput(const char *filename) {
  *************************************************************************************/
 
 int main(int argc, char **argv) {
-	vector<shared_ptr<SplineVolume> > volumes = processParameters(argc, argv);
-	if( enforceRightHandSystem(volumes) ) {
+	processParameters(argc, argv);
+	// SplineModel model(volumes); // epsilon 1e-4
+	TopologySet *topology = model.getTopology();
+	if( model.enforceRightHandSystem() ) {
 		cerr << "WARNING: system reparameterized to strict right-hand-system. \n";
 		cerr << "         stored in \"reparameterized.g2\"\n";
-		writeReparameterization(volumes, "reparameterized.g2");
+		ofstream outFile;
+		outFile.open("reparameterized.g2");
+		model.writeSplines(outFile);
+		outFile.close();
 	}
 
-	TopologySet topology(volumes); // epsilon 1e-4
-	topology.buildTopology();
-	if(verbose) cout << "Model build complete\n";
 
 	if(verbose) {
-		cout << "Total number of vertices: " << topology.numbVertices() << endl;
-		cout << "Total number of lines   : " << topology.numbLines() << " (" << topology.numbNonDegenLines() << " non-degenerate ones) " << endl;
-		cout << "Total number of faces   : " << topology.numbFaces() << " (" << topology.numbNonDegenFaces() << " non-degenerate ones) " << endl;
-		cout << "Total number of volumes : " << topology.numbVolumes() << endl;
+		cout << "Total number of vertices: " << topology->numbVertices() << endl;
+		cout << "Total number of lines   : " << topology->numbLines() << " (" << topology->numbNonDegenLines() << " non-degenerate ones) " << endl;
+		cout << "Total number of faces   : " << topology->numbFaces() << " (" << topology->numbNonDegenFaces() << " non-degenerate ones) " << endl;
+		cout << "Total number of volumes : " << topology->numbVolumes() << endl;
 	}
 
-	globNumber l2g[volumes.size()];
-	// initalize all l2g-variables 
-	for(uint i=0; i<volumes.size(); i++) {
-		for(int j=0; j<8; j++)
-			l2g[i].vertex[j] = -1;
-		for(int j=0; j<12; j++) {
-			l2g[i].edge[j] = -1;
-			l2g[i].edge_incr[j] = 0;
-		}
-		for(int j=0; j<6; j++) {
-			l2g[i].surface[j] = -1;
-			l2g[i].surface_incr_i[j] = 0;
-			l2g[i].surface_incr_j[j] = 0;
-		}
-		l2g[i].volume = -1;
-	}
-
-	set<Vertex*>::iterator v_it;
-	set<Line*>::iterator   l_it ;
-	set<Face*>::iterator   f_it ;
-
-	vector<shared_ptr<SplineVolume> >::iterator vol_it;
-
-	// Enumerate vertices, lines, surfaces and finally volumes, in that order
-	int glob_i = 0;
-
-	vector<int>::iterator pos;
-	set<Volume*>::iterator v;
+	ifstream inFile;
+	inFile.open("pawn_vol.prop");
+	model.readModelProperties(inFile);
+	inFile.close();
 	
-	// for all VERTICES, assign number
-	for(v_it=topology.vertex_begin(); v_it != topology.vertex_end(); v_it++) {
-		for(v=(*v_it)->volume.begin(); v != (*v_it)->volume.end(); v++) {
-			vector<int> corners = (*v)->getVertexEnumeration(*v_it);
-			for(pos=corners.begin(); pos!=corners.end(); pos++)
-				l2g[(*v)->id].vertex[*pos] = glob_i;
-		}
-		glob_i++;
-	}
-
-#if 0 
-	// initialize all (possible) degenerate lines
-	for(uint i=0; i<volumes.size(); i++) {
-		int lineCount = 0;
-		for(int parDir=0; parDir<3; parDir++) {
-			for(int u2=0; u2<2; u2++) {
-				for(int u1=0; u1<2; u1++) {
-					int v_start, v_stop;
-					if(parDir==0)      v_start =      2*u1 + 4*u2;
-					else if(parDir==1) v_start = u1        + 4*u2;
-					else if(parDir==2) v_start = u1 + 2*u2       ;
-
-					if(parDir==0)      v_stop  =  1 + 2*u1 + 4*u2;
-					else if(parDir==1) v_stop  = u1 +  2   + 4*u2;
-					else if(parDir==2) v_stop  = u1 + 2*u2 +  4  ;
-
- 					/* note that this test is NOT sufficient to verify degenerate lines as they may circle and stop at the same 
-					 * place as they started. However if this is the case, then the values here will be overwritten at a later point.
-					 */
-					if(l2g[i].vertex[v_start] == l2g[i].vertex[v_stop] ) {
-						l2g[i].edge[lineCount]      = l2g[i].vertex[v_start];
-						l2g[i].edge_incr[lineCount] = 0;
-					}
-					lineCount++;
-				}
-			}
-		}
-	}
-#endif
-
-	// for all EDGES, assign startnumber and increment
-	for(l_it=topology.line_begin(); l_it != topology.line_end(); l_it++) {
-		vector<int> numb;
-		vector<int> parDir;
-		vector<int> parStep;
-		Volume *first_vol = (*(*l_it)->volume.begin());
-		shared_ptr<SplineVolume> sv = volumes[first_vol->id]; // this edge SHOULD have at least one volume-connection
-		first_vol->getEdgeEnumeration(*l_it, numb, parDir, parStep);
-		int coefs_here = sv->numCoefs(parDir[0])-2; // coefs_here SHOULD be identical for all lines in all volumes for this line
-		if(coefs_here > 0) {
-			for(v=(*l_it)->volume.begin(); v != (*l_it)->volume.end(); v++) {
-				(*v)->getEdgeEnumeration(*l_it, numb, parDir, parStep); // no worries: numb, parDir & parStep all get cleaned inside function call before returned
-				for(uint i=0; i<numb.size(); i++) {
-					if((*l_it)->degen) {
-						vector<int> corners = (*v)->getVertexEnumeration((*l_it)->v1);
-						int corner_pos = corners[0]; // should be the same global number on all elements of "corners"
-						l2g[(*v)->id].edge[numb[i]]      = l2g[(*v)->id].vertex[corner_pos];
-						l2g[(*v)->id].edge_incr[numb[i]] = 0;
-					} else {
-						l2g[(*v)->id].edge[numb[i]]      = (parStep[i]==1) ? glob_i : glob_i+coefs_here-1;
-						l2g[(*v)->id].edge_incr[numb[i]] =  parStep[i] ;
-					}
-				}
-			}
-			if( !(*l_it)->degen )
-				glob_i += coefs_here;
-		}
-	}
-
-	/*! \todo Merge the "initalize all degen surf"-block with the "for all FACES"-loop */
-	// initialize all (possible) degenerate surfaces
-	for(uint i=0; i<volumes.size(); i++) {
-		int surfCount = 0;
-		int v_step   = 1; // starting vertex for face corresponding to parametric max value
-		for(int parDir=0; parDir<3; parDir++) {
-			if(parDir > 0) v_step *= 2; // v_step = 1,2,4
-			for(int parVal=0; parVal<2; parVal++) {  // parVal = max or min
-				int incr1 = (parDir==0) ? 2 : 1; 
-				int incr2 = (parDir==2) ? 2 : 4;
-				int v_start = parVal * v_step;
-
-				if(l2g[i].vertex[v_start] == l2g[i].vertex[v_start+incr1]) { 
-					// degenerate in local i-direction, store the line in the local j-direction
-					int line_i = Line::getLineEnumeration(v_start, v_start+incr2);
-					l2g[i].surface[surfCount]        = l2g[i].edge[line_i];
-					l2g[i].surface_incr_j[surfCount] = l2g[i].edge_incr[line_i];
-				}
-				if(l2g[i].vertex[v_start] == l2g[i].vertex[v_start+incr2]) {
-					// vica versa
-					int line_i = Line::getLineEnumeration(v_start, v_start+incr1);
-					l2g[i].surface[surfCount]        = l2g[i].edge[line_i];
-					l2g[i].surface_incr_i[surfCount] = l2g[i].edge_incr[line_i];
-				}
-
-				surfCount++;
-			}
-		}
-	}
-
-	// for all SURFACES, assign startnumber and increments
-	for(f_it=topology.face_begin(); f_it != topology.face_end(); f_it++) {
-		if((*f_it)->isDegen() )
-			continue;
-		/*  Face Index (logic behind numCoef_u/v)
-		 *  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
-		 *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
-		 *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
-		 */
-		if((*f_it)->v2) { // inner face w/ two adjacent volumes
-			int id1   = (*f_it)->v1->id;
-			int face1 = (*f_it)->face1;
-			int id2   = (*f_it)->v2->id;
-			int face2 = (*f_it)->face2;
-			shared_ptr<SplineVolume> s_volume = volumes[id1];
-			int numCoef_u = s_volume->numCoefs(  (face1 < 2) ) - 2;
-			int numCoef_v = s_volume->numCoefs(2-(face1 > 3) ) - 2;
-			int coefs_here  = numCoef_u * numCoef_v;
-			if(coefs_here > 0) {
-				l2g[id1].surface[face1]        = glob_i;
-				l2g[id1].surface_incr_i[face1] = 1;
-				l2g[id1].surface_incr_j[face1] = numCoef_u;
-
-				bool uv_flip   = (*f_it)->uv_flip;
-				bool u_reverse = (*f_it)->u_reverse;
-				bool v_reverse = (*f_it)->v_reverse;
-
-				if(uv_flip) {
-					l2g[id2].surface_incr_i[face2] = numCoef_u;
-					l2g[id2].surface_incr_j[face2] = 1;
-				} else {
-					l2g[id2].surface_incr_i[face2] = 1;
-					l2g[id2].surface_incr_j[face2] = numCoef_u;
-				}
-				if(u_reverse)
-					l2g[id2].surface_incr_i[face2] *= -1;
-				if(v_reverse)
-					l2g[id2].surface_incr_j[face2] *= -1;
-
-				if(!u_reverse && !v_reverse)
-					l2g[id2].surface[face2] = glob_i ;
-				else if(u_reverse && v_reverse)
-					l2g[id2].surface[face2] = glob_i + coefs_here - 1;
-				else if(v_reverse == uv_flip)
-					l2g[id2].surface[face2] = glob_i + numCoef_u - 1;
-				else // u_reverse == uv_flip
-					l2g[id2].surface[face2] = glob_i + coefs_here - numCoef_u;
-
-				glob_i += coefs_here;
-			}
-		} else { // boundary face (except in the nasty case of the pawn degenerate center-line-face)
-			int id    = (*f_it)->v1->id;
-			int face1 = (*f_it)->face1;
-			shared_ptr<SplineVolume> s_volume = volumes[id];
-			int numCoef_u = s_volume->numCoefs(  (face1 < 2) ) - 2;
-			int numCoef_v = s_volume->numCoefs(2-(face1 > 3) ) - 2;
-			int coefs_here  = numCoef_u * numCoef_v;
-			if(coefs_here > 0) {
-				l2g[id].surface[face1]        = glob_i;
-				l2g[id].surface_incr_i[face1] = 1;
-				l2g[id].surface_incr_j[face1] = numCoef_u;
-				glob_i += coefs_here;
-			}
-		}
-	}
-
-	// for all VOLUMES assign startnumber
-	for(uint i=0; i<volumes.size(); i++) {
-		shared_ptr<SplineVolume> s_volume = volumes[i];
-		int numCoef_u = s_volume->numCoefs(0)-2;
-		int numCoef_v = s_volume->numCoefs(1)-2;
-		int numCoef_w = s_volume->numCoefs(2)-2;
-		int coefs_here  = numCoef_u * numCoef_v * numCoef_w;
-		if(coefs_here > 0) {
-			l2g[i].volume = glob_i;
-			glob_i += coefs_here;
-		}
-	}
-
-	if(verbose) { // human friendly output
-		for(uint i=0; i<volumes.size(); i++) {
-			cout << "IBLOCK " << i << endl;
-			cout << "  Global vertex numbers:\n    ";
-			for(int j=0; j<8; j++)
-				cout << l2g[i].vertex[j] << " ";
-			cout << endl;
-			cout << "  Global line numbers and iterator:\n";
-			for(int j=0; j<12; j++)
-				cout << "    " << l2g[i].edge[j] << " " << l2g[i].edge_incr[j] << endl;
-			cout << "  Global face numbers and iterators:\n";
-			for(int j=0; j<6; j++)
-				cout << "    " << l2g[i].surface[j] << " " << l2g[i].surface_incr_i[j] << " " << l2g[i].surface_incr_j[j] << endl;
-			cout << "  Internal volume start:\n";
-			cout << "    " << l2g[i].volume << endl;
-		}
-	} else { // production output
-		for(uint i=0; i<volumes.size(); i++) {
-			cout << i << endl;
-			for(int j=0; j<8; j++)
-				cout << l2g[i].vertex[j] << " ";
-			cout << endl;
-			for(int j=0; j<12; j++)
-				cout << l2g[i].edge[j] << " " << l2g[i].edge_incr[j] << endl;
-			for(int j=0; j<6; j++)
-				cout << l2g[i].surface[j] << " " << l2g[i].surface_incr_i[j] << " " << l2g[i].surface_incr_j[j] << endl;
-			cout << l2g[i].volume << endl;
-		}
-	}
-
+	/*
+	model.addVolumePropertyCode(0, 0, true);
+	model.addVolumePropertyCode(0, 1, false);
+	model.addFacePropertyCode(0, 1, 5);
+	model.addVertexPropertyCode(0, 0, 10);
+	*/
+	
+	model.generateGlobalNumbers();
+	cout << " >>>   =======  Spline model ==========  <<<" << endl;
+	model.writeSplines(cout);
+	cout << " >>>   ======= Global numbering =======  <<<" << endl;
+	model.writeGlobalNumberOrdering(cout);
+	cout << " >>>   ======= Model properties =======  <<<" << endl;
+	model.writeModelProperties(cout);
 	return 0;
 }

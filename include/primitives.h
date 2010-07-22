@@ -83,7 +83,8 @@ class Line : public Go::Streamable {
 		bool equals(Line *l, double tol);
 		void write(std::ostream &os) const;
 		void read(std::istream &is);
-		static int getLineEnumeration(int vert1, int vert2);
+		static std::vector<int> getLineEnumeration(int face);
+		static int              getLineEnumeration(int vert1, int vert2);
 
 		std::vector<Go::Point> cp; //!< Defining control points
 		std::set<Volume*> volume;  //!< Neighbouring volumes
@@ -105,7 +106,7 @@ class Vertex {
 		Go::Point cp;              //!< Defining control point
 		std::set<Volume*> volume;  //!< Neighbouring volumes
 		int bc_code;               //!< Boundary condition code
-		Vertex() { bc_code = -1; }
+		Vertex() { bc_code = 0; }
 };
 
 #endif

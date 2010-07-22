@@ -11,7 +11,7 @@ class Line;
 class Vertex;
 
 /**********************************************************************************//**
- * \brief Main class for keeping track of the module topology
+ * \brief keeping track of the module topology and primitive (point/line/face) relations
  * 
  * This class keeps control of all topological relations needed to create a consistent
  * local-to-global enumeration mapping. It relies on comparison of control points for 
@@ -20,14 +20,21 @@ class Vertex;
  *************************************************************************************/
 class TopologySet {
 	public:
+		TopologySet(double tol=1e-4);
 		TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes, double tol=1e-4);
+		~TopologySet();
+
+		void addVolume(boost::shared_ptr<Go::SplineVolume> vol);
 		void buildTopology();
+
 		int numbVertices() const;
 		int numbLines() const;
 		int numbNonDegenLines() const;
 		int numbFaces() const;
 		int numbNonDegenFaces() const;
 		int numbVolumes() const;
+
+		Volume* getVolume(int id);
 		
 		std::set<Vertex*> getBoundaryVertices();
 		std::set<Line*>   getBoundaryLines();
@@ -40,6 +47,8 @@ class TopologySet {
 		std::set<Line*>::iterator line_end();
 		std::set<Face*>::iterator face_begin();
 		std::set<Face*>::iterator face_end();
+		std::set<Volume*>::iterator volume_begin();
+		std::set<Volume*>::iterator volume_end();
 
 	private:
 		void    addVolume(Volume* v);
@@ -54,7 +63,6 @@ class TopologySet {
 		std::set<Vertex*> vertex_;     //!< All unique corner vertices
  
 		std::vector<boost::shared_ptr<Go::SplineVolume> > spline_volumes_; //!< Spline objects
-
 };
 
 #endif

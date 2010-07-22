@@ -15,6 +15,15 @@ using boost::shared_ptr;
 
 /**********************************************************************************//**
  * \brief Constructor
+ * \param tol            Tolerance used when checking for control point equality (measured in euclidean distance)
+ *
+ *************************************************************************************/
+TopologySet::TopologySet(double tol) {
+	this->tol = tol;
+}
+
+/**********************************************************************************//**
+ * \brief Constructor
  * \param spline_volumes All spline volumes to be considered part of this model
  * \param tol            Tolerance used when checking for control point equality (measured in euclidean distance)
  *
@@ -26,6 +35,21 @@ TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spli
 	spline_volumes_ = spline_volumes;
 }
 
+TopologySet::~TopologySet() {
+	set<Vertex*>::iterator	v_it;
+	set<Line*>::iterator    l_it;
+	set<Face*>::iterator    f_it;
+	for(v_it = vertex_begin(); v_it != vertex_end(); v_it++)
+		delete *v_it;
+	for(l_it = line_begin(); l_it != line_end(); l_it++)
+		delete *l_it;
+	for(f_it = face_begin(); f_it != face_end(); f_it++)
+		delete *f_it;
+}
+
+void TopologySet::addVolume(boost::shared_ptr<Go::SplineVolume> vol) {
+	spline_volumes_.push_back(vol);
+}
 
 /*! \brief build the topology given by all vertex, line, face and volume relations */
 void TopologySet::buildTopology() {
@@ -268,14 +292,20 @@ void TopologySet::addVolume(Volume* v) {
 
 /*! \brief fetch all vertices on the boundary of the model */
 std::set<Vertex*> TopologySet::getBoundaryVertices() {
-	set<Vertex*> results;
-	return results;
+	set<Vertex*> vert;
+	set<Line*>   line;
+	set<Face*>   face;
+	getBoundaries(vert, line, face);
+	return vert;
 }
 
 /*! \brief fetch all lines on the boundary of the model */
 std::set<Line*> TopologySet::getBoundaryLines() {
-	set<Line*> results;
-	return results;
+	set<Vertex*> vert;
+	set<Line*>   line;
+	set<Face*>   face;
+	getBoundaries(vert, line, face);
+	return line;
 }
 
 /*! \brief fetch all faces on the boundary of the model */
@@ -294,18 +324,37 @@ std::set<Face*> TopologySet::getBoundaryFaces() {
  * \param [out] lines    Boundary lines
  * \param [out] faces    Boundary faces
  *
- * \todo Write this method as well as the other getBoundary-functions. Also make sure that
- *       it is correctly detecting nasty things such as the pawn centerline-degen-face
- *       as a non-boundary face
- *
  * An optimized version to get all boundaries. This is faster than sequentially calling
  * getBoundaryVertices(),getBoundaryLines() and getBoundaryFaces().
+ *
+ * \note that in a very special case (i.e. single-volume pawn), this method may give
+ *       degenerated internal faces as "boundaries" even if they are completely contained
+ *       inside the model. This is because they are only neighbouring one volume and is as
+ *       such considered on the boundary. This will in turn give wrong internal lines and
+ *       vertices as well.
  *************************************************************************************/
 void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, std::set<Face*> faces) {
 	faces.clear();
 	lines.clear();
 	vertices.clear();
 	faces = getBoundaryFaces();
+	set<Face*>::iterator it;
+	for(it=faces.begin(); it != faces.end(); it++) {
+		vector<int> lineNumb = Line::getLineEnumeration( (*it)->face1 );
+		for(int i=0; i<4; i++) {
+			lines.insert( (*it)->v1->line[lineNumb[i]] );
+			vertices.insert( (*it)->v1->line[lineNumb[i]]->v1 ); // yes, this will insert all vertices (at least) twice, but it is preffered
+			vertices.insert( (*it)->v1->line[lineNumb[i]]->v2 ); // to the alternative which is making more functions 
+		}
+	}
+}
+
+set<Volume*>::iterator TopologySet::volume_begin() {
+	return volume_.begin();
+}
+
+set<Volume*>::iterator TopologySet::volume_end() {
+	return volume_.end();
 }
 
 set<Face*>::iterator TopologySet::face_begin() {
@@ -370,5 +419,14 @@ int TopologySet::numbNonDegenFaces() const {
 /*! \brief Number of unique volumes in the model */
 int TopologySet::numbVolumes() const {
 	return volume_.size();
+}
+
+/*! \brief get one specific volume */
+Volume* TopologySet::getVolume(int id) {
+	set<Volume*>::iterator it;
+	for(it=volume_.begin(); it != volume_.end(); it++)
+		if( (*it)->id == id)
+			return *it;
+	return NULL;
 }
 
