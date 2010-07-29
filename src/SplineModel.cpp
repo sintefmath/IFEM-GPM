@@ -74,6 +74,8 @@ bool SplineModel::enforceRightHandSystem() {
 			spline_volumes_[i]->reverseParameterDirection(2);
 		}
 	}
+	if(anything_switched)
+		topology->buildTopology();
 	return anything_switched;
 }
 

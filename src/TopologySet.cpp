@@ -53,6 +53,10 @@ void TopologySet::addVolume(boost::shared_ptr<Go::SplineVolume> vol) {
 
 /*! \brief build the topology given by all vertex, line, face and volume relations */
 void TopologySet::buildTopology() {
+	volume_.clear();
+	face_.clear();
+	line_.clear();
+	vertex_.clear();
 	for(uint i=0; i<spline_volumes_.size(); i++) {
 		bool rat = spline_volumes_[i]->rational();
 		int dim  = spline_volumes_[i]->dimension();

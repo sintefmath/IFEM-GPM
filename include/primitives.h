@@ -107,6 +107,8 @@ class Vertex {
 		std::set<Volume*> volume;  //!< Neighbouring volumes
 		int bc_code;               //!< Boundary condition code
 		Vertex() { bc_code = 0; }
+
+		static std::vector<int> getVertexEnumeration(int face);
 };
 
 #endif
