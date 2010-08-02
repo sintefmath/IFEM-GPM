@@ -21,13 +21,16 @@ Face::Face(int n1, int n2) {
 	for(int u=0; u<n1; u++)
 		cp[u].resize(n2);
 
-	v1    = NULL;
-	v2    = NULL;
-	face1 = -1;
-	face2 = -1;
-	uv_flip    = false;
-	u_reverse  = false;
-	v_reverse  = false;
+	// v1    = NULL;
+	// v2    = NULL;
+	// face1 = -1;
+	// face2 = -1;
+	// uv_flip    = false;
+	// u_reverse  = false;
+	// v_reverse  = false;
+	uv_flip.push_back(false);
+	u_reverse.push_back(false);
+	v_reverse.push_back(false);
 	bc_code    = 0;
 }
 
@@ -82,9 +85,12 @@ bool Face::equals(Face *f, double tol) {
 					}
 				}
 				if(match) {
-					this->uv_flip   = uv_flip;
-					this->u_reverse = u_reverse;
-					this->v_reverse = v_reverse;
+					this->uv_flip.push_back(uv_flip);
+					this->u_reverse.push_back(u_reverse);
+					this->v_reverse.push_back(v_reverse);
+					// this->uv_flip   = uv_flip;
+					// this->u_reverse = u_reverse;
+					// this->v_reverse = v_reverse;
 					return true;
 				}
 			}

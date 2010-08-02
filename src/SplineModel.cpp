@@ -130,9 +130,12 @@ bool SplineModel::addFacePropertyCode(int volId, int faceId, int propCode, bool 
 	f->bc_code = propCode;
 	if(inclusive) {
 		bool changes = false;
-		vector<int> lineNumb = (f->v1->id==volId) ? Line::getLineEnumeration( f->face1 ) : Line::getLineEnumeration( f->face2 );
+		
+		// tracking edge lines & points through the first volume in *f - not neccessary equal to
+		// *v (but the lines & points should be equal)
+		vector<int> lineNumb = Line::getLineEnumeration( f->face[0] );
 		for(int i=0; i<4; i++) {
-			Line* l = v->line[lineNumb[i]];
+			Line* l = f->volume[0]->line[lineNumb[i]];
 			changes = changes || (l->bc_code!=propCode);
 			l->bc_code = propCode;
 			changes = changes || (l->v1->bc_code!=propCode);
@@ -303,100 +306,68 @@ void SplineModel::generateGlobalNumbers() {
 		}
 	}
 
-	/*! \todo Merge the "initalize all degen surf"-block with the "for all FACES"-loop */
-	// initialize all (possible) degenerate surfaces
-	for(uint i=0; i<spline_volumes_.size(); i++) {
-		int surfCount = 0;
-		int v_step   = 1; // starting vertex for face corresponding to parametric max value
-		for(int parDir=0; parDir<3; parDir++) {
-			if(parDir > 0) v_step *= 2; // v_step = 1,2,4
-			for(int parVal=0; parVal<2; parVal++) {  // parVal = max or min
-				int incr1 = (parDir==0) ? 2 : 1; 
-				int incr2 = (parDir==2) ? 2 : 4;
-				int v_start = parVal * v_step;
-
-				if(l2g[i].vertex[v_start] == l2g[i].vertex[v_start+incr1]) { 
-					// degenerate in local i-direction, store the line in the local j-direction
-					int line_i = Line::getLineEnumeration(v_start, v_start+incr2);
-					l2g[i].surface[surfCount]        = l2g[i].edge[line_i];
-					l2g[i].surface_incr_j[surfCount] = l2g[i].edge_incr[line_i];
-				}
-				if(l2g[i].vertex[v_start] == l2g[i].vertex[v_start+incr2]) {
-					// vica versa
-					int line_i = Line::getLineEnumeration(v_start, v_start+incr1);
-					l2g[i].surface[surfCount]        = l2g[i].edge[line_i];
-					l2g[i].surface_incr_i[surfCount] = l2g[i].edge_incr[line_i];
-				}
-
-				surfCount++;
-			}
-		}
-	}
-
 	// for all SURFACES, assign startnumber and increments
 	for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
-		if((*f_it)->isDegen() )
-			continue;
+		Face *f = *f_it;
 		/*  Face Index (logic behind numCoef_u/v)
 		 *  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
 		 *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
 		 *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
 		 */
-		if((*f_it)->v2) { // inner face w/ two adjacent volumes
-			int id1   = (*f_it)->v1->id;
-			int face1 = (*f_it)->face1;
-			int id2   = (*f_it)->v2->id;
-			int face2 = (*f_it)->face2;
-			shared_ptr<SplineVolume> s_volume = spline_volumes_[id1];
-			int numCoef_u = s_volume->numCoefs(  (face1 < 2) ) - 2;
-			int numCoef_v = s_volume->numCoefs(2-(face1 > 3) ) - 2;
-			int coefs_here  = numCoef_u * numCoef_v;
-			if(coefs_here > 0) {
-				l2g[id1].surface[face1]        = glob_i;
-				l2g[id1].surface_incr_i[face1] = 1;
-				l2g[id1].surface_incr_j[face1] = numCoef_u;
+		shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
+		int numCoef_u  = (f->degen1)    ? 1 : s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
+		int numCoef_v  = (f->degen2)    ? 1 : s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
+		int coefs_here = (f->isDegen()) ? 0 : numCoef_u*numCoef_v;
 
-				bool uv_flip   = (*f_it)->uv_flip;
-				bool u_reverse = (*f_it)->u_reverse;
-				bool v_reverse = (*f_it)->v_reverse;
+		for(uint i=0; i<f->volume.size(); i++) {
+			Volume *vol = f->volume[i];
+			int faceId  = f->face[i];
+			if(f->degen1 && f->degen2) {
+				l2g[vol->id].surface[faceId]        = glob_i;
+				l2g[vol->id].surface_incr_i[faceId] = 0;
+				l2g[vol->id].surface_incr_j[faceId] = 0;
+				coefs_here = 0;
+			} else if(f->degen1) {
+				l2g[vol->id].surface[faceId]        = glob_i;
+				l2g[vol->id].surface_incr_i[faceId] = 0;
+				l2g[vol->id].surface_incr_j[faceId] = 1;
+				coefs_here = numCoef_v;
+			} else if(f->degen2) {
+				l2g[vol->id].surface[faceId]        = glob_i;
+				l2g[vol->id].surface_incr_i[faceId] = 1;
+				l2g[vol->id].surface_incr_j[faceId] = 0;
+				coefs_here = numCoef_u;
+			} else {
+				bool uv_flip   = f->uv_flip[i];
+				bool u_reverse = f->u_reverse[i];
+				bool v_reverse = f->v_reverse[i];
+				int minor_step = 1;
+				int major_step = (f->isDegen()) ? 1 : numCoef_u;
 
 				if(uv_flip) {
-					l2g[id2].surface_incr_i[face2] = numCoef_u;
-					l2g[id2].surface_incr_j[face2] = 1;
+					l2g[vol->id].surface_incr_i[faceId] = (f->degen2) ? 0 : major_step;
+					l2g[vol->id].surface_incr_j[faceId] = (f->degen1) ? 0 : minor_step;
 				} else {
-					l2g[id2].surface_incr_i[face2] = 1;
-					l2g[id2].surface_incr_j[face2] = numCoef_u;
+					l2g[vol->id].surface_incr_i[faceId] = (f->degen1) ? 0 : minor_step;
+					l2g[vol->id].surface_incr_j[faceId] = (f->degen2) ? 0 : major_step;
 				}
 				if(u_reverse)
-					l2g[id2].surface_incr_i[face2] *= -1;
+					l2g[vol->id].surface_incr_i[faceId] *= -1;
 				if(v_reverse)
-					l2g[id2].surface_incr_j[face2] *= -1;
+					l2g[vol->id].surface_incr_j[faceId] *= -1;
 
 				if(!u_reverse && !v_reverse)
-					l2g[id2].surface[face2] = glob_i ;
+					l2g[vol->id].surface[faceId] = glob_i ;
 				else if(u_reverse && v_reverse)
-					l2g[id2].surface[face2] = glob_i + coefs_here - 1;
+					l2g[vol->id].surface[faceId] = glob_i + coefs_here - 1;
 				else if(v_reverse == uv_flip)
-					l2g[id2].surface[face2] = glob_i + numCoef_u - 1;
+					l2g[vol->id].surface[faceId] = glob_i + numCoef_u - 1;
 				else // u_reverse == uv_flip
-					l2g[id2].surface[face2] = glob_i + coefs_here - numCoef_u;
+					l2g[vol->id].surface[faceId] = glob_i + coefs_here - numCoef_u;
 
-				glob_i += coefs_here;
-			}
-		} else { // boundary face (except in the nasty case of the pawn degenerate center-line-face)
-			int id    = (*f_it)->v1->id;
-			int face1 = (*f_it)->face1;
-			shared_ptr<SplineVolume> s_volume = spline_volumes_[id];
-			int numCoef_u = s_volume->numCoefs(  (face1 < 2) ) - 2;
-			int numCoef_v = s_volume->numCoefs(2-(face1 > 3) ) - 2;
-			int coefs_here  = numCoef_u * numCoef_v;
-			if(coefs_here > 0) {
-				l2g[id].surface[face1]        = glob_i;
-				l2g[id].surface_incr_i[face1] = 1;
-				l2g[id].surface_incr_j[face1] = numCoef_u;
-				glob_i += coefs_here;
 			}
 		}
+		glob_i += coefs_here;
 	}
 
 	// for all VOLUMES assign startnumber
@@ -440,7 +411,7 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 	for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
 		Face *f = *f_it;
 		if(f->bc_code != 0) 
-			os << "Face " << f->v1->id << " " << f->face1 << " " << f->bc_code << " 0" << endl;
+			os << "Face " << f->volume[0]->id << " " << f->face[0] << " " << f->bc_code << " 0" << endl;
 	}
 	for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
 		Line *l = *l_it;

@@ -11,6 +11,7 @@
 #include <fstream>
 #include <string.h>
 
+#include "DisplayObjectSet.h"
 #include "Fenris.h"
 #include "VolumeDisplay.h"
 #include "SurfaceDisplay.h"
@@ -89,10 +90,12 @@ bool face_disp   = true;
 bool line_disp   = true;
 bool vertex_disp = true;
 
-Button *showVolumes = new Button("Volumes");
-Button *showFaces   = new Button("Faces");
-Button *showLines   = new Button("Lines");
-Button *showPoints  = new Button("Vertices");
+Button *showVolumes   = new Button("Volumes");
+Button *showFaces     = new Button("Faces");
+Button *showLines     = new Button("Lines");
+Button *showPoints    = new Button("Vertices");
+Button *debugPropCode = new Button("Print property code");
+Button *debugGNO      = new Button("Print global numbers");
 
 void processParameters(int argc, char** argv) {
 	for(int argi=1; argi<argc; argi++) {
@@ -108,6 +111,15 @@ void processParameters(int argc, char** argv) {
 	}
 }
 
+void printGNO(Button *caller) {
+	model.generateGlobalNumbers();
+	model.writeGlobalNumberOrdering(cout);
+}
+
+void printProperties(Button *caller) {
+	model.writeModelProperties(cout);
+}
+
 void keyClick(unsigned char key) {
 	if('0' <= key && key <= '9') {
 		Fenris *f = Fenris::getInstance();
@@ -115,8 +127,8 @@ void keyClick(unsigned char key) {
 		int code = key - '0';
 		HSVType col_hsv;
 		col_hsv.H = 6.*((3*code)%10)/9;
-		col_hsv.V = 0.9;
-		col_hsv.S = (code==0) ? 0.0 : 0.8;
+		col_hsv.V = 0.7;
+		col_hsv.S = (code==0) ? 0.0 : 0.7;
 		RGBType color = HSV_to_RGB(col_hsv);
 		for(uint i=0; i<selected.size(); i++) {
 			cout << "setting code #" << code << "(" << color.R << ", " << color.G << ", " << color.B << ")\n";
@@ -125,7 +137,7 @@ void keyClick(unsigned char key) {
 				SplineVolume *v = ((VolumeDisplay*)selected[i])->volume;
 				for(uint j=0; j<volumes.size(); j++)
 					if(volumes[j].get() == v) 
-						model.addVolumePropertyCode(j, key);
+						model.addVolumePropertyCode(j, code);
 
 			} else if(selected[i]->classType() == SURFACE) {
 				SplineSurface *s = ((SurfaceDisplay*)selected[i])->surf;
@@ -140,7 +152,7 @@ void keyClick(unsigned char key) {
 							for(int ii=0; ii<4; ii++) {
 								CurveDisplay *cd = f->getDisplayObject(curves[j][edgeLines[ii]].get());
 								PointDisplay *pd = f->getDisplayObject(points[j][edgePoint[ii]].get());
-								cd->setColor(color.R, color.G, color.B);
+								if(cd) cd->setColor(color.R, color.G, color.B);
 								pd->setColor(color.R, color.G, color.B);
 							}
 							setOnce = true;
@@ -151,10 +163,19 @@ void keyClick(unsigned char key) {
 
 			} else if(selected[i]->classType() == CURVE) {
 				SplineCurve *c = ((CurveDisplay*)selected[i])->curve;
-				for(uint j=0; j<curves.size(); j++)
-					for(uint k=0; k<curves[j].size(); k++)
-						if(curves[j][k].get() == c) 
+				for(uint j=0; j<curves.size(); j++) {
+					for(uint k=0; k<curves[j].size(); k++) {
+						if(curves[j][k].get() == c)  {
 							model.addLinePropertyCode(j, k, code);
+							int v1, v2;
+							Vertex::getVertexEnumeration(k, v1, v2);
+							PointDisplay *pd = f->getDisplayObject(points[j][v1].get());
+							pd->setColor(color.R, color.G, color.B);
+							pd = f->getDisplayObject(points[j][v2].get());
+							pd->setColor(color.R, color.G, color.B);
+						}
+					}
+				}
 
 			} else if(selected[i]->classType() == POINT) {
 				Point p = ((PointDisplay*)selected[i])->point;
@@ -293,28 +314,28 @@ int main(int argc, char **argv) {
 	for(faceIt=topology->face_begin(); faceIt!=topology->face_end(); faceIt++) {
 		Face   *f   = *faceIt;
 		if(f->isDegen()) continue;
-		Volume *vol = f->v1;
+		Volume *vol = f->volume[0];
 		vector<int> all_faces = vol->getSurfaceEnumeration(f);
 		int volId  = vol->id;
 		int faceId = all_faces[0];
 		fenris->addObject(surfaces[volId][faceId].get(), false);
 		// overwrite all pointers to the one used to create the DisplayObject
-		for(uint i=0; i<all_faces.size(); i++) {
-			surfaces[vol->id][all_faces[i]] = surfaces[volId][faceId];
-		}
-		if(f->v2 != NULL) {
-			vol = f->v2;
+		for(uint i=0; i<f->volume.size(); i++) {
+			vol = f->volume[i];
 			all_faces = vol->getSurfaceEnumeration(f);
-			for(uint i=0; i<all_faces.size(); i++) {
-				surfaces[vol->id][all_faces[i]] = surfaces[volId][faceId];
-			}
+			for(uint j=0; j<all_faces.size(); j++)
+				surfaces[vol->id][all_faces[j]] = surfaces[volId][faceId];
 		}
 	}
 	for(volIt=topology->volume_begin(); volIt!=topology->volume_end(); volIt++) {
 		Volume *vol = *volIt;
 		fenris->addObject(volumes[vol->id].get());
 	}
+	DisplayObjectSet *objSet = fenris->getObjectSet();
+	objSet->setLineWidth(5);
+	objSet->setPointSize(14);
 	fenris->hideObjects(VOLUME);
+	// fenris->hideObjects(SURFACE);
 
 	showVolumes->makeOnOffButton();
 	showFaces->makeOnOffButton();
@@ -329,13 +350,19 @@ int main(int argc, char **argv) {
 	showFaces->setOnClick(ButtonClick);
 	showLines->setOnClick(ButtonClick);
 	showPoints->setOnClick(ButtonClick);
+	debugPropCode->setOnClick(printProperties);
+	debugGNO->setOnClick(printGNO);
 
 	fenris->addButton(showVolumes);
 	fenris->addButton(showFaces);
 	fenris->addButton(showLines);
 	fenris->addButton(showPoints);
+	fenris->addButton(debugPropCode);
+	fenris->addButton(debugGNO);
 
 	fenris->addKeyboardListener(keyClick);
+
+	fenris->setSplineColor(.7, .7, .7);
 
 	fenris->show();
 

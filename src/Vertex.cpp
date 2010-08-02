@@ -2,6 +2,17 @@
 
 using namespace std;
 
+void Vertex::getVertexEnumeration(int line, int &v1, int &v2) {
+	int parDir = line/4;
+	int n      = line%4;
+	if(parDir==0)      v1 = 2*n;
+	else if(parDir==1) v1 = n + 2*(n>1);
+	else if(parDir==2) v1 = n;
+
+	if(parDir==0)      v2 = v1+1;
+	else if(parDir==1) v2 = v1+2;
+	else if(parDir==2) v2 = v1+4;
+}
 
 std::vector<int> Vertex::getVertexEnumeration(int face) {
 	vector<int> results;

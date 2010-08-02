@@ -56,18 +56,23 @@ class Face : public Go::Streamable {
 		void read(std::istream &is);
 
 		std::vector<std::vector<Go::Point> > cp; //!< Defining control points
-		Volume *v1;        //!< First neighbouring volume
-		Volume *v2;        //!< Second neighbouring volume (or null in the case of edge face)
-		int    face1;      //!< face index on volume 1
-		int    face2;      //!< face index on volume 2
-		bool   uv_flip;    //!< is the first/second parameter direction swapped on the twin face
-		bool   u_reverse;  //!< is the first parameter direction reversed
-		bool   v_reverse;  //!< is the second parameter direction reversed
+		// Volume *v1;               //!< First neighbouring volume
+		// Volume *v2;               //!< Second neighbouring volume (or null in the case of edge face)
+		// int    face1;             //!< face index on volume 1
+		// int    face2;             //!< face index on volume 2
+		// bool   uv_flip;           //!< is the first/second parameter direction swapped on the twin face
+		// bool   u_reverse;         //!< is the first parameter direction reversed
+		// bool   v_reverse;         //!< is the second parameter direction reversed
+		std::vector<Volume*> volume;     //!< Neighbouring volumes
+		std::vector<int >    face;       //!< face index on volume 1
+		std::vector<bool>    uv_flip;    //!< is the first/second parameter direction swapped wrt the first volume
+		std::vector<bool>    u_reverse;  //!< is the first parameter direction reversed
+		std::vector<bool>    v_reverse;  //!< is the second parameter direction reversed
 
-		bool   degen1;     //!< is the first parameter direction degenerated
-		bool   degen2;     //!< is the second parameter direction degenerated
+		bool   degen1;            //!< is the first parameter direction degenerated
+		bool   degen2;            //!< is the second parameter direction degenerated
 
-		int    bc_code;    //!< Boundary condition code
+		int    bc_code;           //!< Boundary condition code
 };
 
 /**********************************************************************************//**
@@ -108,6 +113,7 @@ class Vertex {
 		int bc_code;               //!< Boundary condition code
 		Vertex() { bc_code = 0; }
 
+		static void             getVertexEnumeration(int line, int &v1, int &v2);
 		static std::vector<int> getVertexEnumeration(int face);
 };
 

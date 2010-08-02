@@ -84,10 +84,9 @@ void Volume::getEdgeEnumeration(Line *l, vector<int> &numb, vector<int> &parDir,
  *************************************************************************************/
 vector<int> Volume::getSurfaceEnumeration(Face *f) {
 	vector<int> results;
-	if(f->v1 == this)
-		results.push_back(f->face1);
-	if(f->v2 != NULL && f->v2 == this)
-		results.push_back(f->face2);
+	for(uint i=0; i<f->volume.size(); i++)
+		if(f->volume[i] == this)
+			results.push_back(f->face[i]);
 	return results;
 }
 

@@ -175,8 +175,8 @@ void TopologySet::buildTopology() {
 
 				// initialize Face
 				Face *f  = new Face(u_siz, v_siz);
-				f->v1    = vol;
-				f->face1 = surfCount;
+				f->volume.push_back(vol);
+				f->face.push_back(surfCount);
 
 				for(int v=0; v<v_siz; v++) {
 					for(int u=0; u<u_siz; u++) {
@@ -268,16 +268,10 @@ Face* TopologySet::addFace(Face* f) {
 	for(it=face_.begin(); it != face_.end(); it++) {
 		// cout << "Testing equality " << (*it)->v1->id << "(" << (*it)->face1 << ") - " << f->v1->id << "(" << f->face1 << ")\n";
 		if( (*it)->equals(f, tol) ) {
-			if((*it)->v2) {
-				// actually you could optimize by putting this test before
-				// testing for surface equality. Just gonna leave it here
-				// for now to help in verification of the code
-				cerr << "Error: Face given three neighbouring volumes\n";
-				exit(1);
-			}
 			// cout << "YAY - face equals!!!\n";
-			(*it)->v2    = f->v1;
-			(*it)->face2 = f->face1;
+			// at this point we KNOW that *f only has one neigbhouring volume
+			(*it)->volume.push_back(*f->volume.begin());
+			(*it)->face.push_back(*f->face.begin());
 			delete f;
 			return *it;
 		}
@@ -317,7 +311,7 @@ std::set<Face*> TopologySet::getBoundaryFaces() {
 	set<Face*> results;
 	set<Face*>::iterator it;
 	for(it=face_.begin(); it != face_.end(); it++)
-		if((*it)->v2 == NULL)
+		if((*it)->volume.size() == 1)
 			results.insert(*it);
 	return results;
 }
@@ -344,11 +338,12 @@ void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> line
 	faces = getBoundaryFaces();
 	set<Face*>::iterator it;
 	for(it=faces.begin(); it != faces.end(); it++) {
-		vector<int> lineNumb = Line::getLineEnumeration( (*it)->face1 );
+		vector<int> lineNumb = Line::getLineEnumeration( *(*it)->face.begin() );
+		Volume *firstVol = *(*it)->volume.begin();
 		for(int i=0; i<4; i++) {
-			lines.insert( (*it)->v1->line[lineNumb[i]] );
-			vertices.insert( (*it)->v1->line[lineNumb[i]]->v1 ); // yes, this will insert all vertices (at least) twice, but it is preffered
-			vertices.insert( (*it)->v1->line[lineNumb[i]]->v2 ); // to the alternative which is making more functions 
+			lines.insert( firstVol->line[lineNumb[i]] );
+			vertices.insert( firstVol->line[lineNumb[i]]->v1 ); // yes, this will insert all vertices (at least) twice, but it is preffered
+			vertices.insert( firstVol->line[lineNumb[i]]->v2 ); // to the alternative which is making more functions 
 		}
 	}
 }
