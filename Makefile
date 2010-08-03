@@ -1,5 +1,5 @@
 CC = g++
-PROG = bin/gpm
+PROG = bin/gpm_getGNO
 
 # location of GoTools libraries may need to be changed depending on the local computer
 GOTLIB	= -L/usr/local/lib/GoTools \
@@ -22,8 +22,7 @@ FENRISSRC = ../Fenris/src/Camera.cpp \
 	   ../Fenris/src/CurvePoint.cpp
 FENRISINC = ../Fenris/include
 
-SRCS =	src/main_fenris.cpp \
-      	src/SplineModel.cpp \
+SRCS =	src/SplineModel.cpp \
       	src/TopologySet.cpp \
       	src/Line.cpp \
       	src/Volume.cpp \
@@ -34,10 +33,16 @@ SRCS =	src/main_fenris.cpp \
 
 LIBS = $(GLLIB) $(GOTLIB) -Iinclude -I$(FENRISINC)
 
-all: $(PROG)
+all: getGNO gui getPROP
 
-$(PROG):	$(SRCS)
-	$(CC) $(CFLAGS) -o $(PROG) $(SRCS) $(LIBS)
+getGNO: $(SRCS) src/main_getGNO.cpp
+	$(CC) $(CFLAGS) -o bin/gpm_getGNO src/main_getGNO.cpp $(SRCS) $(LIBS)
+
+gui: $(SRCS) src/main_gui.cpp 
+	$(CC) $(CFLAGS) -o bin/gpm_gui src/main_gui.cpp $(SRCS) $(LIBS)
+
+getPROP: $(SRCS) src/main_getPROP.cpp 
+	$(CC) $(CFLAGS) -o bin/gpm_getPROP src/main_getPROP.cpp $(SRCS) $(LIBS)
 
 clean:
-	rm -f $(PROG)
+	rm -f src/gpm_getGNO src/gpm_gui src/gpm_getPROP

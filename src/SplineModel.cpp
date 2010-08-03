@@ -57,7 +57,9 @@ std::vector<boost::shared_ptr<Go::SplineVolume> >& SplineModel::getSplines() {
  * \returns true if any volumes was reparameterized
  *
  * This ensures that all jacobians are evaluated positive, assuming of course that you
- * have a model descirption which is not wrapping itself inside out at any points.
+ * have a model descirption which is not wrapping itself inside out at any points (i.e.
+ * jacboian must be non-negative or non-positive in the entire domain prior to
+ * reparametrization).
  *************************************************************************************/
 bool SplineModel::enforceRightHandSystem() {
 	bool anything_switched = false;
@@ -247,36 +249,6 @@ void SplineModel::generateGlobalNumbers() {
 		glob_i++;
 	}
 
-#if 0 
-	// initialize all (possible) degenerate lines
-	for(uint i=0; i<volumes.size(); i++) {
-		int lineCount = 0;
-		for(int parDir=0; parDir<3; parDir++) {
-			for(int u2=0; u2<2; u2++) {
-				for(int u1=0; u1<2; u1++) {
-					int v_start, v_stop;
-					if(parDir==0)      v_start =      2*u1 + 4*u2;
-					else if(parDir==1) v_start = u1        + 4*u2;
-					else if(parDir==2) v_start = u1 + 2*u2       ;
-
-					if(parDir==0)      v_stop  =  1 + 2*u1 + 4*u2;
-					else if(parDir==1) v_stop  = u1 +  2   + 4*u2;
-					else if(parDir==2) v_stop  = u1 + 2*u2 +  4  ;
-
- 					/* note that this test is NOT sufficient to verify degenerate lines as they may circle and stop at the same 
-					 * place as they started. However if this is the case, then the values here will be overwritten at a later point.
-					 */
-					if(l2g[i].vertex[v_start] == l2g[i].vertex[v_stop] ) {
-						l2g[i].edge[lineCount]      = l2g[i].vertex[v_start];
-						l2g[i].edge_incr[lineCount] = 0;
-					}
-					lineCount++;
-				}
-			}
-		}
-	}
-#endif
-
 	// for all EDGES, assign startnumber and increment
 	for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
 		vector<int> numb;
@@ -403,6 +375,9 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 	set<Face*>::iterator   f_it;
 	set<Line*>::iterator   l_it;
 	set<Vertex*>::iterator c_it; //corner iterator
+
+	/***************     WRITE IT IN THE INPUT-FORM, NOT REALLY USEFULL FOR PRODUCTION    ***********************
+
 	for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++) {
 		Volume* v = *v_it;
 		if(v->material_code != 0)
@@ -426,6 +401,52 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 		if(c->bc_code != 0)
 			os << "Vertex " << (*c->volume.begin())->id << " " << corner_id[0] << " " << c->bc_code << endl;
 	}
+	************************************************************************************************************/
+
+	globNumber propCodes[spline_volumes_.size()];
+	for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++)
+		propCodes[(*v_it)->id].volume = (*v_it)->material_code;
+
+	for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
+		for(uint i=0; i<(*f_it)->volume.size(); i++) {
+			Volume *vol = (*f_it)->volume[i];
+			vector<int> fIds = vol->getSurfaceEnumeration(*f_it);
+			for(uint j=0; j<fIds.size(); j++)
+				propCodes[vol->id].surface[fIds[j]] = (*f_it)->bc_code;
+		}
+	}
+	
+	for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
+		for(v_it=(*l_it)->volume.begin(); v_it != (*l_it)->volume.end(); v_it++) {
+			vector<int> numb, parDir, parStep;
+			(*v_it)->getEdgeEnumeration(*l_it, numb, parDir, parStep);
+			for(uint i=0; i<numb.size(); i++)
+				propCodes[(*v_it)->id].edge[numb[i]] = (*l_it)->bc_code;
+		}
+	}
+
+	for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
+		for(v_it=(*c_it)->volume.begin(); v_it != (*c_it)->volume.end(); v_it++) {
+			vector<int> cIds = (*v_it)->getVertexEnumeration(*c_it);
+			for(uint i=0; i<cIds.size(); i++)
+				propCodes[(*v_it)->id].vertex[cIds[i]] = (*c_it)->bc_code;
+		}
+	}
+
+	for(uint i=0; i<spline_volumes_.size(); i++) {
+		os << propCodes[i].volume << endl;
+		for(uint j=0; j<8; j++)
+			os << propCodes[i].vertex[j] << " ";
+		os << endl;
+		for(uint j=0; j<12; j++)
+			os << propCodes[i].edge[j] << " ";
+		os << endl;
+		for(uint j=0; j<6; j++)
+			os << propCodes[i].surface[j] << " ";
+		os << endl;
+	}
+
+
 }
 
 void SplineModel::writeSplines(std::ostream &os) const {
@@ -444,7 +465,6 @@ void SplineModel::readSplines(std::istream &is) {
 			v->read(is);
 			spline_volumes_.push_back(v);
 			topology->addVolume(v);
-			cout << "Spline volume succesfully read\n";
 		// } else if(head.classType == Class_SplineSurface) {  // should add support for this eventually
 		} else {
 			fprintf(stderr, "unknown or unsupported class object\n");
@@ -493,6 +513,11 @@ void SplineModel::readModelProperties(std::istream &is) {
 			ss >> locId;
 			ss >> code;
 			addVertexPropertyCode(volId, locId, code);
+		} else if(primitive[0] == '/' && primitive[1] == '/') { // comment - continue without doing anything
+			;
+		} else {
+			cerr << "Syntax error near: \"" << str_line << "\"\n";
+			exit(1);
 		}
 	}
 }

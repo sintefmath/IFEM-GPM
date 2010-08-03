@@ -1,0 +1,69 @@
+//==============================================================================
+//!
+//! \file GPM.dox
+//!
+//! \date August 2010
+//!
+//! \author Kjetil A. Johannessen / SINTEF
+//!
+//! \brief File containing the Main Page of the GPM documentation.
+//!
+//==============================================================================
+
+/*! 
+
+\mainpage GPM - Grid Property Modeller
+
+\author Kjetil A. Johannessen, Sintef ICT, Trondheim
+
+\section intro Introduction
+
+The grid-property modeller is designed to provide a simple interface to complex geometric
+tasks. It will allow any multipatch spline model and build the topological relations, given
+that the model is constructed in a "corner-to-corner" fashion. The class will give an easy
+way to specify model properties (i.e. boundary conditions or material properties), generate
+a local to global mapping capable of supporting degenerate faces or lines and multiple
+patches and finally to allow for sophisticated refinement schemes. 
+
+\section overview Overview
+
+The purpose of the GPM is threefold. [G]rid management, [P]roperty management and [M]odeller.
+Starting from the back these tasks perform the following
+
+\subsection modelling Modeller
+
+The modeller part of the GPM builds up the topology of the model. It takes as input one or 
+more GoTools spline volumes. It will then proceed to analyse this model and find which edges
+are connected to which edges and likewise for the edge lines and corner vertices. It will
+create an internal structure such that all neighbouring information is readily available. 
+Operating with the primitives vertex, line, face and volume all information regarding these
+and their immediate relation to one another should be available for future use. Moreover,
+the modeller is able to handle degenerate primitives. That is faces that are either
+degenerated to lines or vertices or lines that are degenerated to vertices (it would serve
+no purpose to put degenerate volumes into the model). 
+
+\subsection properties Property management
+
+GPM provides an interface to specify the model properties. These may include boundary
+conditions, material properties or any other type or property that one should need. This is
+done by giving an integer "tag" to each primitive as described above. The tag can then be
+collected during the analysis and interpreted there. While this is hardly a complex
+functionality, the GPM does ensure that no primitive is given two different codes, and
+given local access to the primitive in question it does ensure that all other pointers to 
+the same primitive (one corner vertex can be shared by any number of neighbouring volumes)
+are given the same property code. 
+
+\subsection grid Grid management
+
+Due to the natural restrictions of the NURBS basis functions, it is required that refinement
+propagates through the neighbouring volumes such that no T-joints appear anywhere in the model.
+Refinement calls made by GPM will ensure that this this will be the case, and still open for
+non-uniform refinement schemes. 
+
+\section requirements Library requirements
+
+The class depends on the presence of GoTools (more specific the core and trivariate modules).
+Moreover, to take advantage of the full power of this class, it is recommended to use the
+graphical user interface which requires the presence of the Fenris class.
+
+*/
