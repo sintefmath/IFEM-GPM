@@ -64,6 +64,6 @@ non-uniform refinement schemes.
 
 The class depends on the presence of GoTools (more specific the core and trivariate modules).
 Moreover, to take advantage of the full power of this class, it is recommended to use the
-graphical user interface which requires the presence of the Fenris class.
+graphical user interface which requires the presence of the SplineGUI class.
 
 */

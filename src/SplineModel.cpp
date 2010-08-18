@@ -287,47 +287,46 @@ void SplineModel::generateGlobalNumbers() {
 		 *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
 		 */
 		shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
-		int numCoef_u  = (f->degen1)    ? 1 : s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
-		int numCoef_v  = (f->degen2)    ? 1 : s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
-		int coefs_here = (f->isDegen()) ? 0 : numCoef_u*numCoef_v;
+		int numCoef_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
+		int numCoef_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
+		int coefs_here = numCoef_u*numCoef_v;
 
 		for(uint i=0; i<f->volume.size(); i++) {
 			Volume *vol = f->volume[i];
 			int faceId  = f->face[i];
+			bool uv_flip   = f->uv_flip[i];
+			bool u_reverse = f->u_reverse[i];
+			bool v_reverse = f->v_reverse[i];
+
+
 			if(f->degen1 && f->degen2) {
-				l2g[vol->id].surface[faceId]        = glob_i;
+				vector<int> corners = Vertex::getVertexEnumeration(faceId);
+				l2g[vol->id].surface[faceId]        = l2g[vol->id].vertex[corners[0]];
 				l2g[vol->id].surface_incr_i[faceId] = 0;
 				l2g[vol->id].surface_incr_j[faceId] = 0;
-				coefs_here = 0;
 			} else if(f->degen1) {
-				l2g[vol->id].surface[faceId]        = glob_i;
-				l2g[vol->id].surface_incr_i[faceId] = 0;
-				l2g[vol->id].surface_incr_j[faceId] = 1;
-				coefs_here = numCoef_v;
-			} else if(f->degen2) {
-				l2g[vol->id].surface[faceId]        = glob_i;
-				l2g[vol->id].surface_incr_i[faceId] = 1;
-				l2g[vol->id].surface_incr_j[faceId] = 0;
-				coefs_here = numCoef_u;
-			} else {
-				bool uv_flip   = f->uv_flip[i];
-				bool u_reverse = f->u_reverse[i];
-				bool v_reverse = f->v_reverse[i];
-				int minor_step = 1;
-				int major_step = (f->isDegen()) ? 1 : numCoef_u;
-
+				vector<int> lines = Line::getLineEnumeration(faceId);
 				if(uv_flip) {
-					l2g[vol->id].surface_incr_i[faceId] = (f->degen2) ? 0 : major_step;
-					l2g[vol->id].surface_incr_j[faceId] = (f->degen1) ? 0 : minor_step;
+					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
+					l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
+					l2g[vol->id].surface_incr_j[faceId] = 0;
 				} else {
-					l2g[vol->id].surface_incr_i[faceId] = (f->degen1) ? 0 : minor_step;
-					l2g[vol->id].surface_incr_j[faceId] = (f->degen2) ? 0 : major_step;
+					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
+					l2g[vol->id].surface_incr_i[faceId] = 0;
+					l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
 				}
-				if(u_reverse)
-					l2g[vol->id].surface_incr_i[faceId] *= -1;
-				if(v_reverse)
-					l2g[vol->id].surface_incr_j[faceId] *= -1;
-
+			} else if(f->degen2) {
+				vector<int> lines = Line::getLineEnumeration(faceId);
+				if(uv_flip) {
+					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
+					l2g[vol->id].surface_incr_i[faceId] = 0;
+					l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
+				} else {
+					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
+					l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
+					l2g[vol->id].surface_incr_j[faceId] = 0;
+				}
+			} else {
 				if(!u_reverse && !v_reverse)
 					l2g[vol->id].surface[faceId] = glob_i ;
 				else if(u_reverse && v_reverse)
@@ -337,9 +336,21 @@ void SplineModel::generateGlobalNumbers() {
 				else // u_reverse == uv_flip
 					l2g[vol->id].surface[faceId] = glob_i + coefs_here - numCoef_u;
 
+				if(uv_flip) {
+					l2g[vol->id].surface_incr_i[faceId] = numCoef_u;
+					l2g[vol->id].surface_incr_j[faceId] = 1;
+				} else {
+					l2g[vol->id].surface_incr_i[faceId] = 1;
+					l2g[vol->id].surface_incr_j[faceId] = numCoef_u;
+				}
+				if(u_reverse)
+					l2g[vol->id].surface_incr_i[faceId] *= -1;
+				if(v_reverse)
+					l2g[vol->id].surface_incr_j[faceId] *= -1;
 			}
 		}
-		glob_i += coefs_here;
+		if(!f->isDegen()) 
+			glob_i += coefs_here;
 	}
 
 	// for all VOLUMES assign startnumber
@@ -376,33 +387,38 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 	set<Line*>::iterator   l_it;
 	set<Vertex*>::iterator c_it; //corner iterator
 
-	/***************     WRITE IT IN THE INPUT-FORM, NOT REALLY USEFULL FOR PRODUCTION    ***********************
+	/***************     WRITE IT IN THE INPUT-FORM, NOT REALLY USEFULL FOR PRODUCTION    ***********************/
 
 	for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++) {
 		Volume* v = *v_it;
 		if(v->material_code != 0)
-			os << "Volume " << v->id << " " << v->material_code << endl;
+			// os << "Volume " << v->id << " " << v->material_code << endl;
+			os << v->material_code << " " << v->id << " 3 " << endl;
 	}
 	for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
 		Face *f = *f_it;
 		if(f->bc_code != 0) 
-			os << "Face " << f->volume[0]->id << " " << f->face[0] << " " << f->bc_code << " 0" << endl;
+			// os << "Face " << f->volume[0]->id << " " << f->face[0] << " " << f->bc_code << " 0" << endl;
+			os << f->bc_code << " " << f->volume[0]->id << " 2 " << f->face[0] << endl;
 	}
 	for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
 		Line *l = *l_it;
 		vector<int> numb, parDir, parStep;
 		(*l->volume.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
 		if(l->bc_code != 0)
-			os << "Line " << (*l->volume.begin())->id << " " << numb[0] << " " << l->bc_code << " 0" << endl;
+			// os << "Line " << (*l->volume.begin())->id << " " << numb[0] << " " << l->bc_code << " 0" << endl;
+			os << l->bc_code << " " << (*l->volume.begin())->id << " 1 " << numb[0] << endl;
 	}
 	for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
 		Vertex *c = *c_it;
 		vector<int> corner_id = (*c->volume.begin())->getVertexEnumeration(c);
 		if(c->bc_code != 0)
-			os << "Vertex " << (*c->volume.begin())->id << " " << corner_id[0] << " " << c->bc_code << endl;
+			// os << "Vertex " << (*c->volume.begin())->id << " " << corner_id[0] << " " << c->bc_code << endl;
+			os << c->bc_code << " " << (*c->volume.begin())->id << " 0 " << corner_id[0] << endl;
 	}
-	************************************************************************************************************/
+	/************************************************************************************************************/
 
+/*
 	globNumber propCodes[spline_volumes_.size()];
 	for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++)
 		propCodes[(*v_it)->id].volume = (*v_it)->material_code;
@@ -445,6 +461,7 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 			os << propCodes[i].surface[j] << " ";
 		os << endl;
 	}
+*/
 
 
 }

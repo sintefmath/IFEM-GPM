@@ -115,10 +115,10 @@ int main(int argc, char **argv) {
 	// model.readModelProperties(inFile);
 	// inFile.close();
 	
-	// model.generateGlobalNumbers();
 	// cout << " >>>   =======  Spline model ==========  <<<" << endl;
 	// model.writeSplines(cout);
 	// cout << " >>>   ======= Global numbering =======  <<<" << endl;
+	model.generateGlobalNumbers();
 	model.writeGlobalNumberOrdering(cout);
 	// cout << " >>>   ======= Model properties =======  <<<" << endl;
 	// model.writeModelProperties(cout);

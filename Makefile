@@ -8,19 +8,19 @@ GOTLIB	= -L/usr/local/lib/GoTools \
 
 CFLAGS = -Wall -g
 
-# Fenris & openGL which should eventually be optionally
+# SplineGUI & openGL which should eventually be optionally
 GLLIB      = -lglut
-FENRISSRC = ../Fenris/src/Camera.cpp \
-       ../Fenris/src/OrthoProjection.cpp \
-	   ../Fenris/src/PointDisplay.cpp \
-	   ../Fenris/src/CurveDisplay.cpp \
-	   ../Fenris/src/SurfaceDisplay.cpp \
-	   ../Fenris/src/VolumeDisplay.cpp \
-	   ../Fenris/src/DisplayObjectSet.cpp \
-	   ../Fenris/src/Button.cpp \
-	   ../Fenris/src/Fenris.cpp \
-	   ../Fenris/src/CurvePoint.cpp
-FENRISINC = ../Fenris/include
+FENRISSRC = ../SplineGUI/src/Camera.cpp \
+       ../SplineGUI/src/OrthoProjection.cpp \
+	   ../SplineGUI/src/PointDisplay.cpp \
+	   ../SplineGUI/src/CurveDisplay.cpp \
+	   ../SplineGUI/src/SurfaceDisplay.cpp \
+	   ../SplineGUI/src/VolumeDisplay.cpp \
+	   ../SplineGUI/src/DisplayObjectSet.cpp \
+	   ../SplineGUI/src/Button.cpp \
+	   ../SplineGUI/src/SplineGUI.cpp \
+	   ../SplineGUI/src/CurvePoint.cpp
+FENRISINC = ../SplineGUI/include
 
 SRCS =	src/SplineModel.cpp \
       	src/TopologySet.cpp \
@@ -33,7 +33,7 @@ SRCS =	src/SplineModel.cpp \
 
 LIBS = $(GLLIB) $(GOTLIB) -Iinclude -I$(FENRISINC)
 
-all: getGNO gui getPROP
+all: getGNO gui getPROP refine
 
 getGNO: $(SRCS) src/main_getGNO.cpp
 	$(CC) $(CFLAGS) -o bin/gpm_getGNO src/main_getGNO.cpp $(SRCS) $(LIBS)
@@ -44,5 +44,8 @@ gui: $(SRCS) src/main_gui.cpp
 getPROP: $(SRCS) src/main_getPROP.cpp 
 	$(CC) $(CFLAGS) -o bin/gpm_getPROP src/main_getPROP.cpp $(SRCS) $(LIBS)
 
+refine: $(SRCS) src/main_refine.cpp 
+	$(CC) $(CFLAGS) -o bin/gpm_refine src/main_refine.cpp $(SRCS) $(LIBS)
+
 clean:
-	rm -f src/gpm_getGNO src/gpm_gui src/gpm_getPROP
+	rm -f bin/gpm_getGNO bin/gpm_gui bin/gpm_getPROP bin/gpm_refine

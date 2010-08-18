@@ -4,7 +4,7 @@
  * \author Kjetil A. Johannessen
  * \date July 2010
  *
- * \brief Fenris GUI for GPM-interaction
+ * \brief spline GUI for GPM-interaction
  *************************************************************************************/
 
 #include <iostream>
@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "DisplayObjectSet.h"
-#include "Fenris.h"
+#include "SplineGUI.h"
 #include "VolumeDisplay.h"
 #include "SurfaceDisplay.h"
 #include "CurveDisplay.h"
@@ -122,8 +122,8 @@ void printProperties(Button *caller) {
 
 void keyClick(unsigned char key) {
 	if('0' <= key && key <= '9') {
-		Fenris *f = Fenris::getInstance();
-		vector<DisplayObject*> selected = f->getSelectedObjects();
+		SplineGUI *gui = SplineGUI::getInstance();
+		vector<DisplayObject*> selected = gui->getSelectedObjects();
 		int code = key - '0';
 		HSVType col_hsv;
 		col_hsv.H = 6.*((3*code)%10)/9;
@@ -150,8 +150,8 @@ void keyClick(unsigned char key) {
 							vector<int> edgeLines = Line::getLineEnumeration(k);
 							vector<int> edgePoint = Vertex::getVertexEnumeration(k);
 							for(int ii=0; ii<4; ii++) {
-								CurveDisplay *cd = f->getDisplayObject(curves[j][edgeLines[ii]].get());
-								PointDisplay *pd = f->getDisplayObject(points[j][edgePoint[ii]].get());
+								CurveDisplay *cd = gui->getDisplayObject(curves[j][edgeLines[ii]].get());
+								PointDisplay *pd = gui->getDisplayObject(points[j][edgePoint[ii]].get());
 								if(cd) cd->setColor(color.R, color.G, color.B);
 								pd->setColor(color.R, color.G, color.B);
 							}
@@ -169,9 +169,9 @@ void keyClick(unsigned char key) {
 							model.addLinePropertyCode(j, k, code);
 							int v1, v2;
 							Vertex::getVertexEnumeration(k, v1, v2);
-							PointDisplay *pd = f->getDisplayObject(points[j][v1].get());
+							PointDisplay *pd = gui->getDisplayObject(points[j][v1].get());
 							pd->setColor(color.R, color.G, color.B);
-							pd = f->getDisplayObject(points[j][v2].get());
+							pd = gui->getDisplayObject(points[j][v2].get());
 							pd->setColor(color.R, color.G, color.B);
 						}
 					}
@@ -189,32 +189,32 @@ void keyClick(unsigned char key) {
 }
 
 void ButtonClick(Button *caller) {
-	Fenris *f = Fenris::getInstance();
+	SplineGUI *gui = SplineGUI::getInstance();
 	if(caller == showVolumes) {
 		if(showVolumes->isSelected()) {
-			f->unHideObjects(VOLUME);
+			gui->unHideObjects(VOLUME);
 			showFaces->setSelected(false);
 		} else {
-			f->hideObjects(VOLUME);
+			gui->hideObjects(VOLUME);
 		}
 	} else if(caller == showFaces) {
 		if(showFaces->isSelected()) {
-			f->unHideObjects(SURFACE);
+			gui->unHideObjects(SURFACE);
 			showVolumes->setSelected(false);
 		} else {
-			f->hideObjects(SURFACE);
+			gui->hideObjects(SURFACE);
 		}
 	} else if(caller == showLines) {
 		if(showLines->isSelected()) {
-			f->unHideObjects(CURVE);
+			gui->unHideObjects(CURVE);
 		} else {
-			f->hideObjects(CURVE);
+			gui->hideObjects(CURVE);
 		}
 	} else if(caller == showPoints) {
 		if(showPoints->isSelected()) {
-			f->unHideObjects(POINT);
+			gui->unHideObjects(POINT);
 		} else {
-			f->hideObjects(POINT);
+			gui->hideObjects(POINT);
 		}
 		vertex_disp = !vertex_disp;
 	}
@@ -263,9 +263,9 @@ int main(int argc, char **argv) {
 			for(int v=0; v<2; v++) {
 				for(int u=0; u<2; u++) {
 					Point p;
-					volumes[i]->point(p, pSpan[0]+pSpan[1]*u,
-					                     pSpan[2]+pSpan[3]*v,
-					                      pSpan[4]+pSpan[5]*w);
+					volumes[i]->point(p, pSpan[0]*(1-u)+pSpan[1]*u,
+					                     pSpan[2]*(1-v)+pSpan[3]*v,
+					                     pSpan[4]*(1-w)+pSpan[5]*w);
 					points[i].push_back(shared_ptr<Point>(new Point(p)));
 				}
 			}
@@ -278,14 +278,14 @@ int main(int argc, char **argv) {
 	set<Face*>::iterator   faceIt;
 	set<Volume*>::iterator volIt;
 
-	Fenris *fenris = Fenris::getInstance();
+	SplineGUI *gui = SplineGUI::getInstance();
 	for(vertIt=topology->vertex_begin(); vertIt!=topology->vertex_end(); vertIt++) {
 		Vertex *v   = *vertIt;
 		Volume *vol = *v->volume.begin();
 		vector<int> all_corners = vol->getVertexEnumeration(v);
 		int volId  = vol->id;
 		int vertId = all_corners[0];
-		fenris->addObject(points[volId][vertId].get());
+		gui->addObject(points[volId][vertId].get());
 		// overwrite all pointers to the one used to create the DisplayObject
 		for(volIt=v->volume.begin(); volIt!=v->volume.end(); volIt++) {
 			vol = *volIt;
@@ -302,7 +302,7 @@ int main(int argc, char **argv) {
 		vol->getEdgeEnumeration(l, numb, parDir, parStep);
 		int volId  = vol->id;
 		int lineId = numb[0];
-		fenris->addObject(curves[volId][lineId].get(), true);
+		gui->addObject(curves[volId][lineId].get(), true);
 		// overwrite all pointers to the one used to create the DisplayObject
 		for(volIt=l->volume.begin(); volIt!=l->volume.end(); volIt++) {
 			vol = *volIt;
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
 		vector<int> all_faces = vol->getSurfaceEnumeration(f);
 		int volId  = vol->id;
 		int faceId = all_faces[0];
-		fenris->addObject(surfaces[volId][faceId].get(), false);
+		gui->addObject(surfaces[volId][faceId].get(), false);
 		// overwrite all pointers to the one used to create the DisplayObject
 		for(uint i=0; i<f->volume.size(); i++) {
 			vol = f->volume[i];
@@ -329,13 +329,13 @@ int main(int argc, char **argv) {
 	}
 	for(volIt=topology->volume_begin(); volIt!=topology->volume_end(); volIt++) {
 		Volume *vol = *volIt;
-		fenris->addObject(volumes[vol->id].get());
+		gui->addObject(volumes[vol->id].get());
 	}
-	DisplayObjectSet *objSet = fenris->getObjectSet();
+	DisplayObjectSet *objSet = gui->getObjectSet();
 	objSet->setLineWidth(5);
 	objSet->setPointSize(14);
-	fenris->hideObjects(VOLUME);
-	// fenris->hideObjects(SURFACE);
+	gui->hideObjects(VOLUME);
+	// gui->hideObjects(SURFACE);
 
 	showVolumes->makeOnOffButton();
 	showFaces->makeOnOffButton();
@@ -353,18 +353,18 @@ int main(int argc, char **argv) {
 	debugPropCode->setOnClick(printProperties);
 	debugGNO->setOnClick(printGNO);
 
-	fenris->addButton(showVolumes);
-	fenris->addButton(showFaces);
-	fenris->addButton(showLines);
-	fenris->addButton(showPoints);
-	fenris->addButton(debugPropCode);
-	fenris->addButton(debugGNO);
+	gui->addButton(showVolumes);
+	gui->addButton(showFaces);
+	gui->addButton(showLines);
+	gui->addButton(showPoints);
+	gui->addButton(debugPropCode);
+	gui->addButton(debugGNO);
 
-	fenris->addKeyboardListener(keyClick);
+	gui->addKeyboardListener(keyClick);
 
-	fenris->setSplineColor(.7, .7, .7);
+	gui->setSplineColor(.7, .7, .7);
 
-	fenris->show();
+	gui->show();
 
 	return 0;
 }
