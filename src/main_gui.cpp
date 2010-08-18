@@ -131,7 +131,7 @@ void keyClick(unsigned char key) {
 		col_hsv.S = (code==0) ? 0.0 : 0.7;
 		RGBType color = HSV_to_RGB(col_hsv);
 		for(uint i=0; i<selected.size(); i++) {
-			cout << "setting code #" << code << "(" << color.R << ", " << color.G << ", " << color.B << ")\n";
+			//cout << "setting code #" << code << "(" << color.R << ", " << color.G << ", " << color.B << ")\n";
 			selected[i]->setColor(color.R,color.G,color.B);
 			if(selected[i]->classType() == VOLUME) {
 				SplineVolume *v = ((VolumeDisplay*)selected[i])->volume;
