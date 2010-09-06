@@ -43,7 +43,8 @@ class SplineModel {
 
 		// local-to-global mapping functions
 		void generateGlobalNumbers();
-
+		void generateGlobalNumbersPETSc();
+		
 		// model property functions
 		bool addVolumePropertyCode(int volId, int propCode, bool inclusive=false);
 		bool addFacePropertyCode(int volId, int faceId, int propCode, bool inclusive=true);
