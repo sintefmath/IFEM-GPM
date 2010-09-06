@@ -206,165 +206,353 @@ int SplineModel::getVertexPropertyCode(int volId, int vertId) {
 	return v->corner[vertId]->bc_code;
 }
 
+
+//! \brief generate the local to global enumerations
+void SplineModel::generateGlobalNumbersPETSc() 
+{
+  uint iu;
+  int  i, j, e;
+
+  vector<int>::iterator pos;
+  set<Volume*>::iterator v1, v2;
+
+  delete[] l2g;
+  l2g = new globNumber[spline_volumes_.size()];
+
+  // initialize all l2g-variables 
+  for(iu = 0;iu < spline_volumes_.size();iu++) {
+    for(j = 0;j < 8;j++)
+      l2g[iu].vertex[j] = -1;
+    for(j = 0;j < 12;j++) {
+      l2g[iu].edge[j] = -1;
+      l2g[iu].edge_incr[j] = 0;
+    }
+    for(j = 0;j < 6;j++) {
+      l2g[iu].surface[j] = -1;
+      l2g[iu].surface_incr_i[j] = 0;
+      l2g[iu].surface_incr_j[j] = 0;
+    }
+    l2g[iu].volume = -1;
+  }
+
+  // Enumerate global nodes
+  int glob_i = 0;
+
+  // Assign global node numbers for all spline volumes
+  for (v1=topology->volume_begin();v1 != topology->volume_end();v1++) {
+    // Assign node numbers for vertices
+    for (i = 0;i < 8;i++) 
+      if (l2g[(*v1)->id].vertex[i] < 0) {
+	Vertex* v = (*v1)->corner[i];
+	
+	bool dup = false;
+	int id   = glob_i;
+	for (j = 0;j < i;j++)
+	  if (v == (*v1)->corner[j]) {
+	    dup = true;
+	    id = l2g[(*v1)->id].vertex[j];
+	    break;
+	  }
+	
+	for (v2 = v->volume.begin();v2 != v->volume.end();v2++) {
+	  vector<int> corners = (*v2)->getVertexEnumeration(v);
+	  for(pos = corners.begin(); pos != corners.end(); pos++)
+	    l2g[(*v2)->id].vertex[*pos] = id;
+	}
+	
+	if (!dup)
+	  glob_i++;
+      }
+  
+    // Assign node numbers for edges
+    for (e = 0;e < 12;e++) 
+      if (l2g[(*v1)->id].edge[e] < 0) {
+	vector<int> edges, dir, step;
+	
+	Line* l1 = (*v1)->line[e];	
+	Volume *first_vol = *(l1->volume.begin());
+	shared_ptr<SplineVolume> sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
+	first_vol->getEdgeEnumeration(l1, edges, dir, step);
+	int numCoeffs = sv->numCoefs(dir[0])-2; // coefs_here SHOULD be identical for all lines in all volumes for this line
+	
+	if(numCoeffs > 0) {
+	  for (v2 = l1->volume.begin();v2 != l1->volume.end();v2++) {
+	    (*v2)->getEdgeEnumeration(l1,edges,dir,step);
+	    
+	    for(iu = 0;iu < edges.size();iu++) 
+	      if(l1->degen) {
+		vector<int> corners = (*v2)->getVertexEnumeration(l1->v1);
+		int c0 = corners[0]; // should be the same global number on all elements of "corners"
+		l2g[(*v2)->id].edge[edges[iu]]      = l2g[(*v2)->id].vertex[c0];
+		l2g[(*v2)->id].edge_incr[edges[iu]] = 0; 
+	      } 
+	      else {
+		l2g[(*v2)->id].edge[edges[iu]]      = (step[iu]==1) ? glob_i : glob_i + numCoeffs - 1;
+		l2g[(*v2)->id].edge_incr[edges[iu]] =  step[iu] ;
+	      }
+	  }
+	}
+	
+	if( !(l1->degen) )
+	  glob_i += numCoeffs;
+      }
+ 
+    // Assign node numbers for faces
+    for (i = 0;i < 6;i++) 
+      if (l2g[(*v1)->id].surface[i] < 0) {
+	Face *f = (*v1)->face[i];
+	/*  Face Index (logic behind numCoef_u/v)
+	 *  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
+	 *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
+	 *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
+	 */
+	shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
+	int numCoeff_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
+	int numCoeff_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
+	int numCoeff    = numCoeff_u*numCoeff_v;
+	
+	for(iu = 0;iu < f->volume.size();iu++) {
+	  Volume *vol = f->volume[iu];
+	  int faceId  = f->face[iu];
+	  bool uv_flip   = f->uv_flip[iu];
+	  bool u_reverse = f->u_reverse[iu];
+	  bool v_reverse = f->v_reverse[iu];
+	  
+	  if(f->degen1 && f->degen2) {
+	    vector<int> corners = Vertex::getVertexEnumeration(faceId);
+	    l2g[vol->id].surface[faceId]        = l2g[vol->id].vertex[corners[0]];
+	    l2g[vol->id].surface_incr_i[faceId] = 0;
+	    l2g[vol->id].surface_incr_j[faceId] = 0;
+	  } 
+	  else if(f->degen1) {
+	    vector<int> lines = Line::getLineEnumeration(faceId);
+	    
+	    if(uv_flip) {
+	      l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
+	      l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
+	      l2g[vol->id].surface_incr_j[faceId] = 0;
+	    } 
+	    else {
+	      l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
+	      l2g[vol->id].surface_incr_i[faceId] = 0;
+	      l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
+	    }
+	  } 
+	  else if(f->degen2) {
+	    vector<int> lines = Line::getLineEnumeration(faceId);
+	    if(uv_flip) {
+	      l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
+	      l2g[vol->id].surface_incr_i[faceId] = 0;
+	      l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
+	    } 
+	    else {
+	      l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
+	      l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
+	      l2g[vol->id].surface_incr_j[faceId] = 0;
+	    }
+	  } 
+	  else {
+	    if(!u_reverse && !v_reverse)
+	      l2g[vol->id].surface[faceId] = glob_i ;
+	    else if(u_reverse && v_reverse)
+	      l2g[vol->id].surface[faceId] = glob_i + numCoeff - 1;
+	    else if(v_reverse == uv_flip)
+	      l2g[vol->id].surface[faceId] = glob_i + numCoeff_u - 1;
+	    else // u_reverse == uv_flip
+	      l2g[vol->id].surface[faceId] = glob_i + numCoeff - numCoeff_u;
+	    
+	    if(uv_flip) {
+	      l2g[vol->id].surface_incr_i[faceId] = numCoeff_u;
+	      l2g[vol->id].surface_incr_j[faceId] = 1;
+	    } 
+	    else {
+	      l2g[vol->id].surface_incr_i[faceId] = 1;
+	      l2g[vol->id].surface_incr_j[faceId] = numCoeff_u;
+	    }
+	    if(u_reverse)
+	      l2g[vol->id].surface_incr_i[faceId] *= -1;
+	    if(v_reverse)
+	      l2g[vol->id].surface_incr_j[faceId] *= -1;
+	  }
+	}
+
+	if(!f->isDegen()) 
+	  glob_i += numCoeff;
+      }
+    
+    // Assign node numbers to volumes
+    shared_ptr<SplineVolume> s_volume = spline_volumes_[(*v1)->id];
+    int numCoeff_u = s_volume->numCoefs(0)-2;
+    int numCoeff_v = s_volume->numCoefs(1)-2;
+    int numCoeff_w = s_volume->numCoefs(2)-2;
+    int numCoeff   = numCoeff_u * numCoeff_v * numCoeff_w;
+    if(numCoeff > 0) {
+      l2g[(*v1)->id].volume = glob_i;
+      glob_i += numCoeff;
+    }
+  }
+}
+
+
 //! \brief generate the local to global enumerations
 void SplineModel::generateGlobalNumbers() {
-
-	delete[] l2g;
-	l2g = new globNumber[spline_volumes_.size()];
-	// initalize all l2g-variables 
-	for(uint i=0; i<spline_volumes_.size(); i++) {
-		for(int j=0; j<8; j++)
-			l2g[i].vertex[j] = -1;
-		for(int j=0; j<12; j++) {
-			l2g[i].edge[j] = -1;
-			l2g[i].edge_incr[j] = 0;
-		}
-		for(int j=0; j<6; j++) {
-			l2g[i].surface[j] = -1;
-			l2g[i].surface_incr_i[j] = 0;
-			l2g[i].surface_incr_j[j] = 0;
-		}
-		l2g[i].volume = -1;
+  
+  delete[] l2g;
+  l2g = new globNumber[spline_volumes_.size()];
+  // initalize all l2g-variables 
+  for(uint i=0; i<spline_volumes_.size(); i++) {
+    for(int j=0; j<8; j++)
+      l2g[i].vertex[j] = -1;
+    for(int j=0; j<12; j++) {
+      l2g[i].edge[j] = -1;
+      l2g[i].edge_incr[j] = 0;
+    }
+    for(int j=0; j<6; j++) {
+      l2g[i].surface[j] = -1;
+      l2g[i].surface_incr_i[j] = 0;
+      l2g[i].surface_incr_j[j] = 0;
+    }
+    l2g[i].volume = -1;
+  }
+  
+  set<Vertex*>::iterator v_it;
+  set<Line*>::iterator   l_it ;
+  set<Face*>::iterator   f_it ;
+  
+  vector<shared_ptr<SplineVolume> >::iterator vol_it;
+  
+  // Enumerate vertices, lines, surfaces and finally volumes, in that order
+  int glob_i = 0;
+  
+  vector<int>::iterator pos;
+  set<Volume*>::iterator v;
+  
+  // for all VERTICES, assign number
+  for(v_it=topology->vertex_begin(); v_it != topology->vertex_end(); v_it++) {
+    for(v=(*v_it)->volume.begin(); v != (*v_it)->volume.end(); v++) {
+      vector<int> corners = (*v)->getVertexEnumeration(*v_it);
+      for(pos=corners.begin(); pos!=corners.end(); pos++)
+	l2g[(*v)->id].vertex[*pos] = glob_i;
+    }
+    glob_i++;
+  }
+  
+  // for all EDGES, assign startnumber and increment
+  for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
+    vector<int> numb;
+    vector<int> parDir;
+    vector<int> parStep;
+    Volume *first_vol = (*(*l_it)->volume.begin());
+    shared_ptr<SplineVolume> sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
+    first_vol->getEdgeEnumeration(*l_it, numb, parDir, parStep);
+    int coefs_here = sv->numCoefs(parDir[0])-2; // coefs_here SHOULD be identical for all lines in all volumes for this line
+    if(coefs_here > 0) {
+      for(v=(*l_it)->volume.begin(); v != (*l_it)->volume.end(); v++) {
+	(*v)->getEdgeEnumeration(*l_it, numb, parDir, parStep); // no worries: numb, parDir & parStep all get cleaned inside function call before returned
+	for(uint i=0; i<numb.size(); i++) {
+	  if((*l_it)->degen) {
+	    vector<int> corners = (*v)->getVertexEnumeration((*l_it)->v1);
+	    int corner_pos = corners[0]; // should be the same global number on all elements of "corners"
+	    l2g[(*v)->id].edge[numb[i]]      = l2g[(*v)->id].vertex[corner_pos];
+	    l2g[(*v)->id].edge_incr[numb[i]] = 0;
+	  } else {
+	    l2g[(*v)->id].edge[numb[i]]      = (parStep[i]==1) ? glob_i : glob_i+coefs_here-1;
+	    l2g[(*v)->id].edge_incr[numb[i]] =  parStep[i] ;
+	  }
 	}
-
-	set<Vertex*>::iterator v_it;
-	set<Line*>::iterator   l_it ;
-	set<Face*>::iterator   f_it ;
-
-	vector<shared_ptr<SplineVolume> >::iterator vol_it;
-
-	// Enumerate vertices, lines, surfaces and finally volumes, in that order
-	int glob_i = 0;
-
-	vector<int>::iterator pos;
-	set<Volume*>::iterator v;
+      }
+      if( !(*l_it)->degen )
+	glob_i += coefs_here;
+    }
+  }
+  
+  // for all SURFACES, assign startnumber and increments
+  for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
+    Face *f = *f_it;
+    /*  Face Index (logic behind numCoef_u/v)
+     *  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
+     *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
+     *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
+     */
+    shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
+    int numCoef_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
+    int numCoef_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
+    int coefs_here = numCoef_u*numCoef_v;
+    
+    for(uint i=0; i<f->volume.size(); i++) {
+      Volume *vol = f->volume[i];
+      int faceId  = f->face[i];
+      bool uv_flip   = f->uv_flip[i];
+      bool u_reverse = f->u_reverse[i];
+      bool v_reverse = f->v_reverse[i];
+      
+      
+      if(f->degen1 && f->degen2) {
+	vector<int> corners = Vertex::getVertexEnumeration(faceId);
+	l2g[vol->id].surface[faceId]        = l2g[vol->id].vertex[corners[0]];
+	l2g[vol->id].surface_incr_i[faceId] = 0;
+	l2g[vol->id].surface_incr_j[faceId] = 0;
+      } else if(f->degen1) {
+	vector<int> lines = Line::getLineEnumeration(faceId);
+	if(uv_flip) {
+	  l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
+	  l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
+	  l2g[vol->id].surface_incr_j[faceId] = 0;
+	} else {
+	  l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
+	  l2g[vol->id].surface_incr_i[faceId] = 0;
+	  l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
+	}
+      } else if(f->degen2) {
+	vector<int> lines = Line::getLineEnumeration(faceId);
+	if(uv_flip) {
+	  l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
+	  l2g[vol->id].surface_incr_i[faceId] = 0;
+	  l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
+	} else {
+	  l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
+	  l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
+	  l2g[vol->id].surface_incr_j[faceId] = 0;
+	}
+      } else {
+	if(!u_reverse && !v_reverse)
+	  l2g[vol->id].surface[faceId] = glob_i ;
+	else if(u_reverse && v_reverse)
+	  l2g[vol->id].surface[faceId] = glob_i + coefs_here - 1;
+	else if(v_reverse == uv_flip)
+	  l2g[vol->id].surface[faceId] = glob_i + numCoef_u - 1;
+	else // u_reverse == uv_flip
+	  l2g[vol->id].surface[faceId] = glob_i + coefs_here - numCoef_u;
 	
-	// for all VERTICES, assign number
-	for(v_it=topology->vertex_begin(); v_it != topology->vertex_end(); v_it++) {
-		for(v=(*v_it)->volume.begin(); v != (*v_it)->volume.end(); v++) {
-			vector<int> corners = (*v)->getVertexEnumeration(*v_it);
-			for(pos=corners.begin(); pos!=corners.end(); pos++)
-				l2g[(*v)->id].vertex[*pos] = glob_i;
-		}
-		glob_i++;
+	if(uv_flip) {
+	  l2g[vol->id].surface_incr_i[faceId] = numCoef_u;
+	  l2g[vol->id].surface_incr_j[faceId] = 1;
+	} else {
+	  l2g[vol->id].surface_incr_i[faceId] = 1;
+	  l2g[vol->id].surface_incr_j[faceId] = numCoef_u;
 	}
-
-	// for all EDGES, assign startnumber and increment
-	for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
-		vector<int> numb;
-		vector<int> parDir;
-		vector<int> parStep;
-		Volume *first_vol = (*(*l_it)->volume.begin());
-		shared_ptr<SplineVolume> sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
-		first_vol->getEdgeEnumeration(*l_it, numb, parDir, parStep);
-		int coefs_here = sv->numCoefs(parDir[0])-2; // coefs_here SHOULD be identical for all lines in all volumes for this line
-		if(coefs_here > 0) {
-			for(v=(*l_it)->volume.begin(); v != (*l_it)->volume.end(); v++) {
-				(*v)->getEdgeEnumeration(*l_it, numb, parDir, parStep); // no worries: numb, parDir & parStep all get cleaned inside function call before returned
-				for(uint i=0; i<numb.size(); i++) {
-					if((*l_it)->degen) {
-						vector<int> corners = (*v)->getVertexEnumeration((*l_it)->v1);
-						int corner_pos = corners[0]; // should be the same global number on all elements of "corners"
-						l2g[(*v)->id].edge[numb[i]]      = l2g[(*v)->id].vertex[corner_pos];
-						l2g[(*v)->id].edge_incr[numb[i]] = 0;
-					} else {
-						l2g[(*v)->id].edge[numb[i]]      = (parStep[i]==1) ? glob_i : glob_i+coefs_here-1;
-						l2g[(*v)->id].edge_incr[numb[i]] =  parStep[i] ;
-					}
-				}
-			}
-			if( !(*l_it)->degen )
-				glob_i += coefs_here;
-		}
-	}
-
-	// for all SURFACES, assign startnumber and increments
-	for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
-		Face *f = *f_it;
-		/*  Face Index (logic behind numCoef_u/v)
-		 *  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
-		 *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
-		 *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
-		 */
-		shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
-		int numCoef_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
-		int numCoef_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
-		int coefs_here = numCoef_u*numCoef_v;
-
-		for(uint i=0; i<f->volume.size(); i++) {
-			Volume *vol = f->volume[i];
-			int faceId  = f->face[i];
-			bool uv_flip   = f->uv_flip[i];
-			bool u_reverse = f->u_reverse[i];
-			bool v_reverse = f->v_reverse[i];
-
-
-			if(f->degen1 && f->degen2) {
-				vector<int> corners = Vertex::getVertexEnumeration(faceId);
-				l2g[vol->id].surface[faceId]        = l2g[vol->id].vertex[corners[0]];
-				l2g[vol->id].surface_incr_i[faceId] = 0;
-				l2g[vol->id].surface_incr_j[faceId] = 0;
-			} else if(f->degen1) {
-				vector<int> lines = Line::getLineEnumeration(faceId);
-				if(uv_flip) {
-					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
-					l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
-					l2g[vol->id].surface_incr_j[faceId] = 0;
-				} else {
-					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
-					l2g[vol->id].surface_incr_i[faceId] = 0;
-					l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
-				}
-			} else if(f->degen2) {
-				vector<int> lines = Line::getLineEnumeration(faceId);
-				if(uv_flip) {
-					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[2]];
-					l2g[vol->id].surface_incr_i[faceId] = 0;
-					l2g[vol->id].surface_incr_j[faceId] = l2g[vol->id].edge_incr[lines[2]];
-				} else {
-					l2g[vol->id].surface[faceId]        = l2g[vol->id].edge[lines[0]];
-					l2g[vol->id].surface_incr_i[faceId] = l2g[vol->id].edge_incr[lines[0]];
-					l2g[vol->id].surface_incr_j[faceId] = 0;
-				}
-			} else {
-				if(!u_reverse && !v_reverse)
-					l2g[vol->id].surface[faceId] = glob_i ;
-				else if(u_reverse && v_reverse)
-					l2g[vol->id].surface[faceId] = glob_i + coefs_here - 1;
-				else if(v_reverse == uv_flip)
-					l2g[vol->id].surface[faceId] = glob_i + numCoef_u - 1;
-				else // u_reverse == uv_flip
-					l2g[vol->id].surface[faceId] = glob_i + coefs_here - numCoef_u;
-
-				if(uv_flip) {
-					l2g[vol->id].surface_incr_i[faceId] = numCoef_u;
-					l2g[vol->id].surface_incr_j[faceId] = 1;
-				} else {
-					l2g[vol->id].surface_incr_i[faceId] = 1;
-					l2g[vol->id].surface_incr_j[faceId] = numCoef_u;
-				}
-				if(u_reverse)
-					l2g[vol->id].surface_incr_i[faceId] *= -1;
-				if(v_reverse)
-					l2g[vol->id].surface_incr_j[faceId] *= -1;
-			}
-		}
-		if(!f->isDegen()) 
-			glob_i += coefs_here;
-	}
-
-	// for all VOLUMES assign startnumber
-	for(uint i=0; i<spline_volumes_.size(); i++) {
-		shared_ptr<SplineVolume> s_volume = spline_volumes_[i];
-		int numCoef_u = s_volume->numCoefs(0)-2;
-		int numCoef_v = s_volume->numCoefs(1)-2;
-		int numCoef_w = s_volume->numCoefs(2)-2;
-		int coefs_here  = numCoef_u * numCoef_v * numCoef_w;
-		if(coefs_here > 0) {
-			l2g[i].volume = glob_i;
-			glob_i += coefs_here;
-		}
-	}
+	if(u_reverse)
+	  l2g[vol->id].surface_incr_i[faceId] *= -1;
+	if(v_reverse)
+	  l2g[vol->id].surface_incr_j[faceId] *= -1;
+      }
+    }
+    if(!f->isDegen()) 
+      glob_i += coefs_here;
+  }
+  
+  // for all VOLUMES assign startnumber
+  for(uint i=0; i<spline_volumes_.size(); i++) {
+    shared_ptr<SplineVolume> s_volume = spline_volumes_[i];
+    int numCoef_u = s_volume->numCoefs(0)-2;
+    int numCoef_v = s_volume->numCoefs(1)-2;
+    int numCoef_w = s_volume->numCoefs(2)-2;
+    int coefs_here  = numCoef_u * numCoef_v * numCoef_w;
+    if(coefs_here > 0) {
+      l2g[i].volume = glob_i;
+      glob_i += coefs_here;
+    }
+  }
 }
 
 void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
