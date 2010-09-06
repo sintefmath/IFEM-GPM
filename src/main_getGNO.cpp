@@ -23,6 +23,7 @@ using namespace Go;
 using boost::shared_ptr;
 
 bool   verbose         = false;
+bool   petsc           = false;
 string fileUsage       = "\
 File usage: gpm [-v] <inputFile> \n\
   \n\
@@ -42,6 +43,8 @@ void processParameters(int argc, char** argv) {
 		} else if(strcmp(arg, "-help") == 0) {
 			cout << fileUsage << endl;
 			exit(0);
+		} else if(strcmp(arg, "-petsc") == 0) {
+		  petsc = true;
 		} else {
 			ifstream inFile;
 			inFile.open(arg);
@@ -118,7 +121,10 @@ int main(int argc, char **argv) {
 	// cout << " >>>   =======  Spline model ==========  <<<" << endl;
 	// model.writeSplines(cout);
 	// cout << " >>>   ======= Global numbering =======  <<<" << endl;
-	model.generateGlobalNumbers();
+	if (petsc)
+	  model.generateGlobalNumbersPETSc();
+	else
+	  model.generateGlobalNumbers();
 	model.writeGlobalNumberOrdering(cout);
 	// cout << " >>>   ======= Model properties =======  <<<" << endl;
 	// model.writeModelProperties(cout);
