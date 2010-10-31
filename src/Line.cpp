@@ -20,6 +20,10 @@ Line::Line() {
 	bc_code = 0;
 }
 
+Line::~Line() {
+	
+}
+
 /**********************************************************************************//**
  * \brief Checks for line equality by comparing all controlpoints
  * \param l The line which is to be compared

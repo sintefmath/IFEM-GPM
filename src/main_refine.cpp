@@ -108,7 +108,7 @@ void processParameters(int argc, char** argv) {
 int main(int argc, char **argv) {
 	processParameters(argc, argv);
 	
-	vector<shared_ptr<SplineVolume> > volumes = model.getSplines();
+	vector<shared_ptr<SplineVolume> > volumes = model.getSplineVolumes();
 	for(uint i=0; i<volumes.size(); i++) {
 		if(eff_volumes.size() > 0) {
 			bool found = false;
@@ -131,6 +131,7 @@ int main(int argc, char **argv) {
 			volumes[i]->insertKnot(2, wKnot[j]);
 	}
 
+	cout << setprecision(17);
 	model.writeSplines(cout);
 	return 0;
 }

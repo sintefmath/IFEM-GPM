@@ -20,6 +20,23 @@ using boost::shared_ptr;
  *************************************************************************************/
 TopologySet::TopologySet(double tol) {
 	this->tol = tol;
+	volumetric_model = false;
+	surface_model    = false;
+}
+
+/**********************************************************************************//**
+ * \brief Constructor
+ * \param spline_surfaces All spline surfaces to be considered part of this model
+ * \param tol             Tolerance used when checking for control point equality (measured in euclidean distance)
+ *
+ * Note that the constructor is NOT creating the topology. It should usually immediately be followed by a call to
+ * buildTopology().
+ *************************************************************************************/
+TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces, double tol) {
+	this->tol = tol;
+	spline_surfaces_ = spline_surfaces;
+	volumetric_model = false;
+	surface_model    = true;
 }
 
 /**********************************************************************************//**
@@ -33,12 +50,15 @@ TopologySet::TopologySet(double tol) {
 TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes, double tol) {
 	this->tol = tol;
 	spline_volumes_ = spline_volumes;
+	volumetric_model = true;
+	surface_model    = false;
 }
 
 TopologySet::~TopologySet() {
 	set<Vertex*>::iterator	v_it;
 	set<Line*>::iterator    l_it;
 	set<Face*>::iterator    f_it;
+
 	for(v_it = vertex_begin(); v_it != vertex_end(); v_it++)
 		delete *v_it;
 	for(l_it = line_begin(); l_it != line_end(); l_it++)
@@ -47,8 +67,38 @@ TopologySet::~TopologySet() {
 		delete *f_it;
 }
 
-void TopologySet::addVolume(boost::shared_ptr<Go::SplineVolume> vol) {
-	spline_volumes_.push_back(vol);
+/**********************************************************************************//**
+ * \brief adds another patch to the model
+ * \param surf surface patch to be added to the total model
+ *
+ * Nice method to use if you are sequentially building up your topology model. Note that
+ * this causes error if called on a volumetric model.
+ *************************************************************************************/
+void TopologySet::addPatch(boost::shared_ptr<Go::SplineSurface> surf) {
+	if(volumetric_model) {
+		cerr << "Trying to add surface patch to a volumetric topology model\n";
+		exit(4251);
+	} else {
+		spline_surfaces_.push_back(surf);
+		surface_model = true;
+	}
+}
+
+/**********************************************************************************//**
+ * \brief adds another patch to the model
+ * \param vol volume patch to be added to the total model
+ *
+ * Nice method to use if you are sequentially building up your topology model. Note that
+ * this causes error if called on a surface model.
+ *************************************************************************************/
+void TopologySet::addPatch(boost::shared_ptr<Go::SplineVolume> vol) {
+	if(surface_model) {
+		cerr << "Trying to add volume patch to a surface topology model\n";
+		exit(4252);
+	} else {
+		spline_volumes_.push_back(vol);
+		volumetric_model = true;
+	}
 }
 
 /*! \brief build the topology given by all vertex, line, face and volume relations */
@@ -57,72 +107,203 @@ void TopologySet::buildTopology() {
 	face_.clear();
 	line_.clear();
 	vertex_.clear();
-	for(uint i=0; i<spline_volumes_.size(); i++) {
-		bool rat = spline_volumes_[i]->rational();
-		int dim  = spline_volumes_[i]->dimension();
-		int n1   = spline_volumes_[i]->numCoefs(0);
-		int n2   = spline_volumes_[i]->numCoefs(1);
-		int n3   = spline_volumes_[i]->numCoefs(2);
-		vector<double>::iterator coef = (rat) ? spline_volumes_[i]->rcoefs_begin() : spline_volumes_[i]->coefs_begin();
-		// cout << "Volume " << i << endl;
+	if(volumetric_model) {
+		for(uint i=0; i<spline_volumes_.size(); i++) {
+			bool rat = spline_volumes_[i]->rational();
+			int dim  = spline_volumes_[i]->dimension();
+			int n1   = spline_volumes_[i]->numCoefs(0);
+			int n2   = spline_volumes_[i]->numCoefs(1);
+			int n3   = spline_volumes_[i]->numCoefs(2);
+			vector<double>::iterator coef = (rat) ? spline_volumes_[i]->rcoefs_begin() : spline_volumes_[i]->coefs_begin();
+			// cout << "Volume " << i << endl;
 
-		// create the volume object (should never be degenerated to face, line or point)
-		Volume *vol = new Volume(i);
-		addVolume(vol);
+			// create the volume object (should never be degenerated to face, line or point)
+			Volume *vol = new Volume(i);
+			addVolume(vol);
 
-		// add all corner vertices to the appropriate places
-		int corner_index = 0;
-		for(int w=0; w<2; w++) {
+			// add all corner vertices to the appropriate places
+			int corner_index = 0;
+			for(int w=0; w<2; w++) {
+				for(int v=0; v<2; v++) {
+					for(int u=0; u<2; u++) {
+						int coefNmb = u*(n1-1) + v*n1*(n2-1) + w*n1*n2*(n3-1);
+						Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
+
+						if(rat)
+							for(int aa=0; aa<dim+rat; aa++)
+								p[aa] /= p[dim];
+						// cout << "  Corner " << corner_index++ << ": " << p << endl;
+						Vertex *vert = new Vertex();
+						vert->cp = p;
+						vert->volume.insert(vol);
+
+						vert = addVertex(vert);
+						vol->corner[corner_index++] = vert;
+					}
+				}
+			}
+
+			// add all lines to the right places
+			int step = 1;
+			int lineCount = 0;
+			for(int parDir=0; parDir<3; parDir++) {
+				if(parDir==1)      step *= n1;
+				else if(parDir==2) step *= n2;
+				for(int u2=0; u2<2; u2++) {
+					for(int u1=0; u1<2; u1++) {
+						Line *line = new Line();
+						int start = 0;
+						int v1_i  = -1;
+						int v2_i  = -1;
+						if(parDir==0)      start =          + u1*n1*(n2-1) + u2*n1*n2*(n3-1);
+						else if(parDir==1) start = u1*(n1-1)+              + u2*n1*n2*(n3-1);
+						else if(parDir==2) start = u1*(n1-1)+ u2*n1*(n2-1)                  ;
+
+						if(parDir==0)      v1_i  =      2*u1 + 4*u2;
+						else if(parDir==1) v1_i  = u1        + 4*u2;
+						else if(parDir==2) v1_i  = u1 + 2*u2       ;
+
+						if(parDir==0)      v2_i  =  1 + 2*u1 + 4*u2;
+						else if(parDir==1) v2_i  = u1 +   2  + 4*u2;
+						else if(parDir==2) v2_i  = u1 + 2*u2 +   4 ;
+
+						line->v1 = vol->corner[v1_i];
+						line->v2 = vol->corner[v2_i];
+
+						bool degen = true;
+						// cout << "Volume " << vol->id << " line " << lineCount << endl;
+						// cout << "Line: " << *line << endl;
+						for(int cpCount=0; cpCount<spline_volumes_[i]->numCoefs(parDir); cpCount++) {
+							Point p(coef+start*(dim+rat), coef+(start+1)*(dim+rat));
+							if(rat)
+								for(int aa=0; aa<dim+rat; aa++)
+									p[aa] /= p[dim];
+							// cout << " (" << p << ") ";
+							if( line->cp.size()>0 && line->cp.back().dist(p)>tol ) {
+								// cout << " DEGEN FALSE ";
+								degen = false;
+							}
+							line->cp.push_back(p);
+							start += step;
+						}
+						// cout << endl;
+						line->degen = degen;
+						line->volume.insert(vol);
+						line = addLine(line);
+						vol->line[lineCount] = line;
+						lineCount++;
+					}
+				}
+			}
+
+			// add all faces to the right places
+			int surfCount = 0;
+			for(int parDir=0; parDir<3; parDir++) {
+				for(int minmax=0; minmax<2; minmax++) { // parMin or parMax
+					int coefNmb = -1;
+					bool degen1  = true;
+					bool degen2  = true;
+					if(parDir==0)      coefNmb = minmax *(n1-1)                ;
+					else if(parDir==1) coefNmb = minmax *  n1  * (n2-1)        ;
+					else if(parDir==2) coefNmb = minmax *  n1  *   n2   *(n3-1);
+					int du    = (parDir==0) ? n1 :1;     // step length walking in local u-dir
+					int dv    = (parDir==2) ? n1 :n1*n2; // step length walking in local v-dir
+					int u_siz = (parDir==0) ? n2 : n1;
+					int v_siz = (parDir==2) ? n2 : n3;
+					
+					// cout << "Volume #" << i << " - surace " << surfCount << endl;
+
+					// initialize Face
+					Face *f  = new Face(u_siz, v_siz);
+					f->volume.push_back(vol);
+					f->face.push_back(surfCount);
+
+					for(int v=0; v<v_siz; v++) {
+						for(int u=0; u<u_siz; u++) {
+							Point p(coef+coefNmb*(dim+rat), coef+(coefNmb+1)*(dim+rat));
+							if(rat)
+								for(int aa=0; aa<dim+rat; aa++)
+									p[aa] /= p[dim];
+							f->cp[u][v] = p;
+							if( u>0 && f->cp[u-1][v].dist(p) > tol )
+								degen1 = false;
+							if( v>0 && f->cp[u][v-1].dist(p) > tol )
+								degen2 = false;
+							
+							// cout << "   (" << p << ")" << endl;
+							coefNmb += du;
+						}
+						coefNmb -= u_siz*du;
+						coefNmb += dv;
+					}
+					f->degen1 = degen1;
+					f->degen2 = degen2;
+					f = addFace(f);
+					vol->face[surfCount] = f;
+					surfCount++;
+				}
+			}
+		}
+	} else if(surface_model) {
+		for(uint i=0; i<spline_surfaces_.size(); i++) {
+			bool rat = spline_surfaces_[i]->rational();
+			int dim  = spline_surfaces_[i]->dimension();
+			int n1   = spline_surfaces_[i]->numCoefs_u();
+			int n2   = spline_surfaces_[i]->numCoefs_v();
+			vector<double>::iterator coef = (rat) ? spline_surfaces_[i]->rcoefs_begin() : spline_surfaces_[i]->coefs_begin();
+			// cout << "Face " << i << endl;
+
+			// create the face object (should never be degenerated to line or point)
+			Face *face = new Face(i);
+			addFace(face);
+
+			// add all corner vertices to the appropriate places
+			int corner_index = 0;
 			for(int v=0; v<2; v++) {
 				for(int u=0; u<2; u++) {
-					int coefNmb = u*(n1-1) + v*n1*(n2-1) + w*n1*n2*(n3-1);
+					int coefNmb = u*(n1-1) + v*n1*(n2-1);
 					Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
 
 					if(rat)
 						for(int aa=0; aa<dim+rat; aa++)
 							p[aa] /= p[dim];
-					// cout << "  Corner " << corner_index++ << ": " << p << endl;
+					// cout << "  Corner " << corner_index << ": " << p << endl;
 					Vertex *vert = new Vertex();
 					vert->cp = p;
-					vert->volume.insert(vol);
+					vert->face.insert(face);
 
 					vert = addVertex(vert);
-					vol->corner[corner_index++] = vert;
+					face->corner[corner_index++] = vert;
 				}
 			}
-		}
 
-		// add all lines to the right places
-		int step = 1;
-		int lineCount = 0;
-		for(int parDir=0; parDir<3; parDir++) {
-			if(parDir==1)      step *= n1;
-			else if(parDir==2) step *= n2;
-			for(int u2=0; u2<2; u2++) {
+			// add all lines to the right places
+			int step = 1;
+			int lineCount = 0;
+			for(int parDir=0; parDir<2; parDir++) {
+				if(parDir==1)      step *= n1;
 				for(int u1=0; u1<2; u1++) {
 					Line *line = new Line();
 					int start = 0;
 					int v1_i  = -1;
 					int v2_i  = -1;
-					if(parDir==0)      start =          + u1*n1*(n2-1) + u2*n1*n2*(n3-1);
-					else if(parDir==1) start = u1*(n1-1)+              + u2*n1*n2*(n3-1);
-					else if(parDir==2) start = u1*(n1-1)+ u2*n1*(n2-1)                  ;
+					if(parDir==0)      start =          + u1*n1*(n2-1);
+					else if(parDir==1) start = u1*(n1-1)              ;
 
-					if(parDir==0)      v1_i  =      2*u1 + 4*u2;
-					else if(parDir==1) v1_i  = u1        + 4*u2;
-					else if(parDir==2) v1_i  = u1 + 2*u2       ;
+					if(parDir==0)      v1_i  =      2*u1;
+					else if(parDir==1) v1_i  = u1       ;
 
-					if(parDir==0)      v2_i  =  1 + 2*u1 + 4*u2;
-					else if(parDir==1) v2_i  = u1 +   2  + 4*u2;
-					else if(parDir==2) v2_i  = u1 + 2*u2 +   4 ;
+					if(parDir==0)      v2_i  =  1 + 2*u1;
+					else if(parDir==1) v2_i  = u1 +   2 ;
 
-					line->v1 = vol->corner[v1_i];
-					line->v2 = vol->corner[v2_i];
+					line->v1 = face->corner[v1_i];
+					line->v2 = face->corner[v2_i];
 
 					bool degen = true;
-					// cout << "Volume " << vol->id << " line " << lineCount << endl;
+					// cout << "Face " << face->id << " line " << lineCount << endl;
 					// cout << "Line: " << *line << endl;
-					for(int cpCount=0; cpCount<spline_volumes_[i]->numCoefs(parDir); cpCount++) {
+					for(int cpCount=0; (parDir==0 && cpCount<spline_surfaces_[i]->numCoefs_u()) ||
+					                   (parDir==1 && cpCount<spline_surfaces_[i]->numCoefs_v())   ; cpCount++) {
 						Point p(coef+start*(dim+rat), coef+(start+1)*(dim+rat));
 						if(rat)
 							for(int aa=0; aa<dim+rat; aa++)
@@ -136,87 +317,12 @@ void TopologySet::buildTopology() {
 						start += step;
 					}
 					// cout << endl;
-					/*
-					if(degen) {
-						// cout << "Ignoring degenerate line\n";
-						delete line;
-						vol->line[lineCount] = NULL;
-					} else {
-						line->volume.insert(vol);
-						line = addLine(line);
-						vol->line[lineCount] = line;
-					}
-					*/
 					line->degen = degen;
-					line->volume.insert(vol);
+					line->face.insert(face);
 					line = addLine(line);
-					vol->line[lineCount] = line;
+					face->line[lineCount] = line;
 					lineCount++;
 				}
-			}
-		}
-
-		// add all faces to the right places
-		int surfCount = 0;
-		for(int parDir=0; parDir<3; parDir++) {
-			for(int minmax=0; minmax<2; minmax++) { // parMin or parMax
-				int coefNmb = -1;
-				bool degen1  = true;
-				bool degen2  = true;
-				if(parDir==0)      coefNmb = minmax *(n1-1)                ;
-				else if(parDir==1) coefNmb = minmax *  n1  * (n2-1)        ;
-				else if(parDir==2) coefNmb = minmax *  n1  *   n2   *(n3-1);
-				int du    = (parDir==0) ? n1 :1;     // step length walking in local u-dir
-				int dv    = (parDir==2) ? n1 :n1*n2; // step length walking in local v-dir
-				int u_siz = (parDir==0) ? n2 : n1;
-				int v_siz = (parDir==2) ? n2 : n3;
-				
-				// cout << "Volume #" << i << " - surace " << surfCount << endl;
-
-				// initialize Face
-				Face *f  = new Face(u_siz, v_siz);
-				f->volume.push_back(vol);
-				f->face.push_back(surfCount);
-
-				for(int v=0; v<v_siz; v++) {
-					for(int u=0; u<u_siz; u++) {
-						Point p(coef+coefNmb*(dim+rat), coef+(coefNmb+1)*(dim+rat));
-						if(rat)
-							for(int aa=0; aa<dim+rat; aa++)
-								p[aa] /= p[dim];
-						f->cp[u][v] = p;
-						if( u>0 && f->cp[u-1][v].dist(p) > tol )
-							degen1 = false;
-						if( v>0 && f->cp[u][v-1].dist(p) > tol )
-							degen2 = false;
-						
-						// cout << "   (" << p << ")" << endl;
-						coefNmb += du;
-					}
-					coefNmb -= u_siz*du;
-					coefNmb += dv;
-				}
-				/*
-				if(degen1 && degen2)
-					// cout << "SURFACE DEGENERATES TO POINT\n";
-					;
-				else if(degen1 || degen2)
-					// cout << "SURFACE DEGENERATES TO LINE\n";
-					;
-
-				if(degen1 || degen2) {
-					delete f;
-					vol->face[surfCount] = NULL;
-				} else {
-					f = addFace(f);
-					vol->face[surfCount] = f;
-				}
-				*/
-				f->degen1 = degen1;
-				f->degen2 = degen2;
-				f = addFace(f);
-				vol->face[surfCount] = f;
-				surfCount++;
 			}
 		}
 	}
@@ -231,7 +337,10 @@ Vertex* TopologySet::addVertex(Vertex *v) {
 	set<Vertex*>::iterator it; 
 	for(it=vertex_.begin(); it != vertex_.end(); it++) {
 		if( (*it)->cp.dist(v->cp) < tol) {
-			(*it)->volume.insert(v->volume.begin(), v->volume.end());
+			if(volumetric_model)
+				(*it)->volume.insert(v->volume.begin(), v->volume.end());
+			else
+				(*it)->face.insert(v->face.begin(), v->face.end());
 			delete v;
 			return *it;
 		}
@@ -249,7 +358,10 @@ Line* TopologySet::addLine(Line* l) {
 	set<Line*>::iterator it; 
 	for(it=line_.begin(); it != line_.end(); it++) {
 		if( l->equals(*it, tol) ) {
-			(*it)->volume.insert(l->volume.begin(), l->volume.end());
+			if(volumetric_model)
+				(*it)->volume.insert(l->volume.begin(), l->volume.end());
+			else
+				(*it)->face.insert(l->face.begin(), l->face.end());
 			delete l;
 			return *it;
 		}
@@ -262,8 +374,15 @@ Line* TopologySet::addLine(Line* l) {
  * \brief try to add a face to the set (keeping uniqueness)
  * \param f Face to be added
  * \return either *f or the Face already contained in the set and being equal to *f
+ *
+ * In the case of surface models, uniqueness or degeneracy is not tested (*f always
+ * returned)
  *************************************************************************************/
 Face* TopologySet::addFace(Face* f) {
+	if(surface_model) {
+		face_.insert(f);
+		return f;
+	}
 	set<Face*>::iterator it;
 	for(it=face_.begin(); it != face_.end(); it++) {
 		// cout << "Testing equality " << (*it)->v1->id << "(" << (*it)->face1 << ") - " << f->v1->id << "(" << f->face1 << ")\n";
@@ -299,21 +418,31 @@ std::set<Vertex*> TopologySet::getBoundaryVertices() {
 
 /*! \brief fetch all lines on the boundary of the model */
 std::set<Line*> TopologySet::getBoundaryLines() {
-	set<Vertex*> vert;
-	set<Line*>   line;
-	set<Face*>   face;
-	getBoundaries(vert, line, face);
-	return line;
+	// if(volumetric_model)
+		set<Vertex*> vert;
+		set<Line*>   line;
+		set<Face*>   face;
+		getBoundaries(vert, line, face);
+		return line;
+	// } else if(surface_model) {
+	//	set<Line*>   line;
+	//	set<Line*>::iterator it;
+	//	return line;
+	// }
 }
 
 /*! \brief fetch all faces on the boundary of the model */
 std::set<Face*> TopologySet::getBoundaryFaces() {
 	set<Face*> results;
 	set<Face*>::iterator it;
-	for(it=face_.begin(); it != face_.end(); it++)
-		if((*it)->volume.size() == 1)
-			results.insert(*it);
-	return results;
+	if(volumetric_model) {
+		for(it=face_.begin(); it != face_.end(); it++)
+			if((*it)->volume.size() == 1)
+				results.insert(*it);
+	} else if(surface_model) {
+		results = face_;
+	}
+	return results; // empty set
 }
 
 /**********************************************************************************//**
@@ -335,16 +464,21 @@ void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> line
 	faces.clear();
 	lines.clear();
 	vertices.clear();
-	faces = getBoundaryFaces();
-	set<Face*>::iterator it;
-	for(it=faces.begin(); it != faces.end(); it++) {
-		vector<int> lineNumb = Line::getLineEnumeration( *(*it)->face.begin() );
-		Volume *firstVol = *(*it)->volume.begin();
-		for(int i=0; i<4; i++) {
-			lines.insert( firstVol->line[lineNumb[i]] );
-			vertices.insert( firstVol->line[lineNumb[i]]->v1 ); // yes, this will insert all vertices (at least) twice, but it is preffered
-			vertices.insert( firstVol->line[lineNumb[i]]->v2 ); // to the alternative which is making more functions 
+	if(volumetric_model) {
+		faces = getBoundaryFaces();
+		set<Face*>::iterator it;
+		for(it=faces.begin(); it != faces.end(); it++) {
+			vector<int> lineNumb = Line::getLineEnumeration( *(*it)->face.begin() );
+			Volume *firstVol = *(*it)->volume.begin();
+			for(int i=0; i<4; i++) {
+				lines.insert( firstVol->line[lineNumb[i]] );
+				vertices.insert( firstVol->line[lineNumb[i]]->v1 ); // yes, this will insert all vertices (at least) twice, but it is preffered
+				vertices.insert( firstVol->line[lineNumb[i]]->v2 ); // to the alternative which is making more functions 
+			}
 		}
+	} else if(surface_model) {
+		lines = getBoundaryLines();
+		set<Line*>::iterator it;
 	}
 }
 

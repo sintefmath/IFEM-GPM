@@ -31,6 +31,7 @@ File usage: gpm [-v] <inputFile> \n\
     <inputFile> : one or more .g2-files describing the spline volumes \n\
   FLAGS\n\
     -v          : verbose output  \n\
+    -petsc      : alternative enumberation scheme  \n\
     -help       : display this help screen";
 SplineModel model;
 
@@ -44,7 +45,7 @@ void processParameters(int argc, char** argv) {
 			cout << fileUsage << endl;
 			exit(0);
 		} else if(strcmp(arg, "-petsc") == 0) {
-		  petsc = true;
+			petsc = true;
 		} else {
 			ifstream inFile;
 			inFile.open(arg);
@@ -122,9 +123,9 @@ int main(int argc, char **argv) {
 	// model.writeSplines(cout);
 	// cout << " >>>   ======= Global numbering =======  <<<" << endl;
 	if (petsc)
-	  model.generateGlobalNumbersPETSc();
+		model.generateGlobalNumbersPETSc();
 	else
-	  model.generateGlobalNumbers();
+		model.generateGlobalNumbers();
 	model.writeGlobalNumberOrdering(cout);
 	// cout << " >>>   ======= Model properties =======  <<<" << endl;
 	// model.writeModelProperties(cout);

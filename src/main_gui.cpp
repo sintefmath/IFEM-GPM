@@ -131,7 +131,7 @@ void keyClick(unsigned char key) {
 		col_hsv.S = (code==0) ? 0.0 : 0.7;
 		RGBType color = HSV_to_RGB(col_hsv);
 		for(uint i=0; i<selected.size(); i++) {
-			//cout << "setting code #" << code << "(" << color.R << ", " << color.G << ", " << color.B << ")\n";
+			// cout << "setting code #" << code << "(" << color.R << ", " << color.G << ", " << color.B << ")\n";
 			selected[i]->setColor(color.R,color.G,color.B);
 			if(selected[i]->classType() == VOLUME) {
 				SplineVolume *v = ((VolumeDisplay*)selected[i])->volume;
@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
 		outFile.close();
 	}
 
-	volumes = model.getSplines();
+	volumes = model.getSplineVolumes();
 	points.resize(volumes.size());
 	for(uint i=0; i<volumes.size(); i++) {
 		Array<double, 6> pSpan = volumes[i]->parameterSpan();

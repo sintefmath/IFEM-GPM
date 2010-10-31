@@ -7,12 +7,25 @@
 class TopologySet;
 
 /**********************************************************************************//**
- * \brief Global number ordering (gno) structure
+ * \brief Global number ordering (gno) structure for surface (2d) models
+ *
+ * Contains all necessary information to go from any local enumeration (i,j) to a global enumeration.
+ * One surfGlobNumber-struct should be available for each topological face
+ *************************************************************************************/
+typedef struct surfGlobNumber {
+	int vertex[4];      //!< global number of the 4 corner vertices
+	int edge[4];        //!< start number for the 4 edge lines
+	int edge_incr[4];   //!< +1 or -1 depending on whether the numbers are ascending or descending
+	int surface;        //!< start number for the internal nodes on the surface
+} surfGlobNumber;
+
+/**********************************************************************************//**
+ * \brief Global number ordering (gno) structure for volume (3d) models
  *
  * Contains all necessary information to go from any local enumeration (i,j,k) to a global enumeration.
- * One globNumber-struct should be available for each topological volume
+ * One volGlobNumber-struct should be available for each topological volume
  *************************************************************************************/
-typedef struct globNumber {
+typedef struct volGlobNumber {
 	int vertex[8];          //!< global number of the 8 corner vertices
 	int edge[12];           //!< start number for the 12 edge lines
 	int edge_incr[12];      //!< +1 or -1 depending on whether the numbers are ascending or descending
@@ -20,7 +33,7 @@ typedef struct globNumber {
 	int surface_incr_i[6];  //!< increment by going in the first parametric direction
 	int surface_incr_j[6];  //!< increment by going in the second parametric direction
 	int volume;             //!< internal volume starting number
-} globNumber;
+} volGlobNumber;
 
 
 /**********************************************************************************//**
@@ -30,12 +43,14 @@ class SplineModel {
 	public:
 		// constructors and destructors
 		SplineModel();
-		SplineModel(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes);
+		SplineModel(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces);
+		SplineModel(std::vector<boost::shared_ptr<Go::SplineVolume> >  &spline_volumes);
 		~SplineModel();
 
 		// common get-functions
 		TopologySet *getTopology();
-		std::vector<boost::shared_ptr<Go::SplineVolume> > &getSplines();
+		std::vector<boost::shared_ptr<Go::SplineVolume> > &getSplineVolumes();
+		std::vector<boost::shared_ptr<Go::SplineSurface> > &getSplineSurfaces();
 		
 		// model geometry functions
 		void setTopologyTolerance(double tol);
@@ -65,8 +80,12 @@ class SplineModel {
 
 	private:
 		TopologySet *topology;
-		globNumber *l2g;
-		std::vector<boost::shared_ptr<Go::SplineVolume> > spline_volumes_; //!< Spline objects
+		bool volumetric_model;
+		bool surface_model;
+		volGlobNumber  *vl2g;
+		surfGlobNumber *sl2g;
+		std::vector<boost::shared_ptr<Go::SplineSurface> > spline_surfaces_; //!< Spline surface objects
+		std::vector<boost::shared_ptr<Go::SplineVolume> >  spline_volumes_;  //!< Spline volume objects
 
 };
 

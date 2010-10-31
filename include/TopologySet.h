@@ -21,10 +21,12 @@ class Vertex;
 class TopologySet {
 	public:
 		TopologySet(double tol=1e-4);
+		TopologySet(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces, double tol=1e-4);
 		TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes, double tol=1e-4);
 		~TopologySet();
 
-		void addVolume(boost::shared_ptr<Go::SplineVolume> vol);
+		void addPatch(boost::shared_ptr<Go::SplineVolume> vol);
+		void addPatch(boost::shared_ptr<Go::SplineSurface> surf);
 		void buildTopology();
 
 		int numbVertices() const;
@@ -62,6 +64,9 @@ class TopologySet {
 		std::set<Line*>   line_;       //!< All unique (possible degenerate) edge lines
 		std::set<Vertex*> vertex_;     //!< All unique corner vertices
  
+ 		bool volumetric_model;
+ 		bool surface_model;
+		std::vector<boost::shared_ptr<Go::SplineSurface> >  spline_surfaces_; //!< Spline objects
 		std::vector<boost::shared_ptr<Go::SplineVolume> > spline_volumes_; //!< Spline objects
 };
 

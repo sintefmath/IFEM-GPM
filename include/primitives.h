@@ -49,13 +49,18 @@ class Volume {
  *************************************************************************************/
 class Face : public Go::Streamable {
 	public:
+		Face(int id);
 		Face(int n1, int n2);
 		bool equals(Face *f, double tol);
 		bool isDegen();
+		std::vector<int> getVertexEnumeration(Vertex *v);
+		void getEdgeEnumeration(Line *l, std::vector<int> &numb, std::vector<int> &parDir, std::vector<int> &parStep);
 		void write(std::ostream &os) const;
 		void read(std::istream &is);
 
 		std::vector<std::vector<Go::Point> > cp; //!< Defining control points
+		Vertex *corner[4];           //!< The four corners (only used in surface models)
+		Line   *line[4];             //!< The four edges (only used in surface models)
 		// Volume *v1;               //!< First neighbouring volume
 		// Volume *v2;               //!< Second neighbouring volume (or null in the case of edge face)
 		// int    face1;             //!< face index on volume 1
@@ -64,14 +69,15 @@ class Face : public Go::Streamable {
 		// bool   u_reverse;         //!< is the first parameter direction reversed
 		// bool   v_reverse;         //!< is the second parameter direction reversed
 		std::vector<Volume*> volume;     //!< Neighbouring volumes
-		std::vector<int >    face;       //!< face index on volume 1
-		std::vector<bool>    uv_flip;    //!< is the first/second parameter direction swapped wrt the first volume
-		std::vector<bool>    u_reverse;  //!< is the first parameter direction reversed
-		std::vector<bool>    v_reverse;  //!< is the second parameter direction reversed
+		std::vector<int >    face;       //!< face index on volume 1 (volumetric models only)
+		std::vector<bool>    uv_flip;    //!< is the first/second parameter direction swapped wrt the first volume (volumetric models only)
+		std::vector<bool>    u_reverse;  //!< is the first parameter direction reversed (volumetric models only)
+		std::vector<bool>    v_reverse;  //!< is the second parameter direction reversed (volumetric models only)
 
 		bool   degen1;            //!< is the first parameter direction degenerated
 		bool   degen2;            //!< is the second parameter direction degenerated
 
+		int    id;
 		int    bc_code;           //!< Boundary condition code
 };
 
@@ -85,6 +91,7 @@ class Face : public Go::Streamable {
 class Line : public Go::Streamable {
 	public:
 		Line();
+		~Line();
 		bool equals(Line *l, double tol);
 		void write(std::ostream &os) const;
 		void read(std::istream &is);
@@ -93,6 +100,7 @@ class Line : public Go::Streamable {
 
 		std::vector<Go::Point> cp; //!< Defining control points
 		std::set<Volume*> volume;  //!< Neighbouring volumes
+		std::set<Face*> face;      //!< Neighbouring faces
 		Vertex *v1;                //!< Start or stop vertex.
 		Vertex *v2;                //!< Start or stop vertex.
 		int bc_code;               //!< Boundary condition code
@@ -110,6 +118,7 @@ class Vertex {
 	public:
 		Go::Point cp;              //!< Defining control point
 		std::set<Volume*> volume;  //!< Neighbouring volumes
+		std::set<Face*> face;      //!< Neighbouring face
 		int bc_code;               //!< Boundary condition code
 		Vertex() { bc_code = 0; }
 

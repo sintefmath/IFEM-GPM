@@ -12,6 +12,23 @@
 using namespace std;
 
 /**********************************************************************************//**
+ * \brief Basic constructor for the Face class using a surface model
+ * \param id unique identification tag
+ *************************************************************************************/
+Face::Face(int id) {
+	cp.resize(0);
+	degen1 = false;
+	degen2 = false;
+	for(int i=0; i<4; i++) {
+		corner[i] = NULL;
+		line[i] = NULL;
+	}
+
+	bc_code    = 0;
+	this->id   = id;
+}
+
+/**********************************************************************************//**
  * \brief Basic constructor for the Face class
  * \param n1 Number of internal controlpoints in the first parametric direction
  * \param n2 Number of internal controlpoints in the second parametric direction
@@ -20,6 +37,10 @@ Face::Face(int n1, int n2) {
 	cp.resize(n1);
 	for(int u=0; u<n1; u++)
 		cp[u].resize(n2);
+	for(int i=0; i<4; i++) {
+		corner[i] = NULL;
+		line[i] = NULL;
+	}
 
 	// v1    = NULL;
 	// v2    = NULL;
@@ -32,6 +53,7 @@ Face::Face(int n1, int n2) {
 	u_reverse.push_back(false);
 	v_reverse.push_back(false);
 	bc_code    = 0;
+	id         = -1;
 }
 
 /**********************************************************************************//**
@@ -104,6 +126,55 @@ bool Face::isDegen() {
 	return degen1 || degen2;
 }
 
+/**********************************************************************************//**
+ * \brief get local enumeration of a vertex
+ *
+ * \param v Vertex to be tested
+ * \return A vector containing all corner positions where v appears
+ *************************************************************************************/
+vector<int> Face::getVertexEnumeration(Vertex *v) {
+	vector<int> results;
+	for(int i=0; i<4; i++)
+		if(v == corner[i])
+			results.push_back(i);
+	return results;
+}
+
+/**********************************************************************************//**
+ * \brief get local enumeration of a Line
+ *
+ * \param [in]  l       line to be tested
+ * \param [out] numb    local line number
+ * \param [out] parDir  0 or 1, giving the parametric direction over which the line is running
+ * \param [out] parStep +1 or -1 depending on whether the line is oriented the same way as l
+ * 
+ * This function searches for all occurrences of *l among *this̈́' edge lines. For each occurrence,
+ * the relation between *l and the detected line will be stored and returned as three vectors.
+ *************************************************************************************/
+void Face::getEdgeEnumeration(Line *l, vector<int> &numb, vector<int> &parDir, vector<int> &parStep) {
+	numb.clear();
+	parDir.clear();
+	parStep.clear();
+	int lineCount = 0;
+	for(int p=0; p<2; p++) { // parametric direction
+		for(int u1=0; u1<2; u1++) {
+			if(l == line[lineCount]) {
+				int v_start = -1; // index of line starting vertex
+				if(p==0)      v_start  =      2*u1;
+				else if(p==1) v_start  = u1       ;
+
+				// is the line oriented the same way globaly as localy?
+				if(l->v1 == corner[v_start])
+					parStep.push_back(1);
+				else
+					parStep.push_back(-1);
+				numb.push_back(lineCount);
+				parDir.push_back(p);
+			}
+			lineCount++;
+		}
+	}
+}
 
 void Face::write(std::ostream &os) const {
 	// do nothing
