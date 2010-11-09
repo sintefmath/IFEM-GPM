@@ -554,6 +554,15 @@ int TopologySet::numbVolumes() const {
 	return volume_.size();
 }
 
+/*! \brief get one specific face */
+Face* TopologySet::getFace(int id) {
+	set<Face*>::iterator it;
+	for(it=face_.begin(); it != face_.end(); it++)
+		if( (*it)->id == id)
+			return *it;
+	return NULL;
+}
+
 /*! \brief get one specific volume */
 Volume* TopologySet::getVolume(int id) {
 	set<Volume*>::iterator it;

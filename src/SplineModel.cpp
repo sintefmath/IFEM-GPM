@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stack>
 
 #include <GoTools/geometry/ObjectHeader.h>
 
@@ -61,6 +62,11 @@ SplineModel::~SplineModel() {
 		delete topology;
 	delete[] vl2g;
 	delete[] sl2g;
+}
+
+//! \brief Checks to see if the model is built up from trivariate volume splines
+bool SplineModel::isVolumetricModel() const {
+	return volumetric_model;
 }
 
 TopologySet* SplineModel::getTopology() {
@@ -244,6 +250,235 @@ int SplineModel::getVertexPropertyCode(int volId, int vertId) {
 	Volume* v = topology->getVolume(volId);
 	return v->corner[vertId]->bc_code;
 }
+
+/**********************************************************************************//**
+ * \brief performs the minimum number of refinements required to contain an analysis
+ *        suitable model
+ * \param patchId  the patch requested for the initial refinement
+ * \param parDir   parametric direction of the refinement
+ * \param knot     knot vector inserted
+ *
+ * This method will insert the requested knot in the patch, as well as propagte this
+ * refinement to all neighbouring patches and their neigbours and so on to ensure that
+ * the model remains "analysis suitable" in a "corner-to-corner" fashion.
+ *************************************************************************************/
+void SplineModel::knot_insert(int patchId, int parDir, double knot) {
+	if(volumetric_model) {
+		cerr << "Refinement for volumes is not yet implemented\n";
+		exit(142990);
+	/*
+		vector<bool> patchIds(topology->numbVolumes(), false);
+
+		vector<bool> minParDirU(topology->numbVolumes(), false);
+		vector<bool> minParDirV(topology->numbVolumes(), false);
+		vector<bool> minParDirW(topology->numbVolumes(), false);
+		vector<bool> maxParDirU(topology->numbVolumes(), false);
+		vector<bool> maxParDirV(topology->numbVolumes(), false);
+		vector<bool> maxParDirW(topology->numbVolumes(), false);
+
+		vector<int>  parameterDirection(topology->numbVolumes(), -1);
+		vector<bool> swapDir(topology->numbVolumes(), false);
+		int otherSide[] = {1,0,  3,2,  5,4}; // given face index i, the other side is index otherSide[i]
+
+		double knotStart = spline_volumes_[patchId]->startparam(parDir);
+		double knotEnd   = spline_volumes_[patchId]->endparam(parDir);
+		newKnotRatio     = (knot - knotStart) / (knotEnd - knotStart);
+
+		stack<Volume*> volStack ;
+		Volume *vol = topology->getVolume(patchId);
+		Face   *f   = vol->face[parDir*2];
+		vector<Volume*> neighb =  f->volume;
+		for(uint i=0; i<neighb.size(); i++) {
+		}
+	*/
+	} else {
+		Line *l;
+		set<Face*>::iterator it;
+		vector<bool> minorRefine[2];
+		vector<bool> majorRefine[2];
+		minorRefine[0].insert(minorRefine[0].begin(), topology->numbFaces(), false);
+		minorRefine[1].insert(minorRefine[1].begin(), topology->numbFaces(), false);
+		majorRefine[0].insert(majorRefine[0].begin(), topology->numbFaces(), false);
+		majorRefine[1].insert(majorRefine[1].begin(), topology->numbFaces(), false);
+
+		int otherSide[] = {1,0,  3,2}; // given face index i, the other side is index otherSide[i]
+		double knotStart = (parDir==0) ? spline_surfaces_[patchId]->startparam_u() : spline_surfaces_[patchId]->startparam_v();
+		double knotEnd   = (parDir==0) ? spline_surfaces_[patchId]->endparam_u()   : spline_surfaces_[patchId]->endparam_v();
+		double knotRel   = (knot - knotStart) / (knotEnd - knotStart);
+		Face *f = topology->getFace(patchId);
+		minorRefine[parDir][f->id] = true;
+
+		stack<Face*> faceStack;
+		stack<bool> minor;
+		stack<int> edgeIn;
+
+		l = f->line[parDir*2];
+		vector<int> numb, runningParDir, parStep;
+		if(! l->degen) {
+			// l is degenerate or has one or two corresponding faces
+			bool rightWay, sameWay;
+			for(it=l->face.begin(); it!=l->face.end(); it++) {
+				(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep);
+				if(*it == f)
+					rightWay = (parStep[0]==1);
+			}
+			for(it=l->face.begin(); it!=l->face.end(); it++) {
+				if(*it == f)
+					continue;
+				(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep);
+				int refParDir = runningParDir[0];
+				sameWay = rightWay == (parStep[0]==1);
+				if(sameWay) {
+					if(!minorRefine[refParDir][(*it)->id]) {
+						minorRefine[refParDir][(*it)->id] = true;
+						faceStack.push(*it);
+						minor.push(true);
+						edgeIn.push(numb[0]);
+					}
+				} else {
+					if(!majorRefine[refParDir][(*it)->id]) {
+						majorRefine[refParDir][(*it)->id] = true;
+						faceStack.push(*it);
+						minor.push(false);
+						edgeIn.push(numb[0]);
+					}
+				}
+			}
+		}
+
+		faceStack.push(f);
+		minor.push(true);
+		edgeIn.push(parDir*2);
+
+		while(!faceStack.empty()) {
+			f = faceStack.top();
+			int eIn = edgeIn.top();
+			bool isMinor = minor.top();
+			faceStack.pop();
+			edgeIn.pop();
+			minor.pop();
+
+			l = f->line[otherSide[eIn]];
+			vector<int> numb, runningParDir, parStep;
+			if(! l->degen) {
+				// l is degenerate or has one or two corresponding faces
+				bool rightWay, sameWay;
+				for(it=l->face.begin(); it!=l->face.end(); it++) {
+					(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep);
+					if(*it == f)
+						rightWay = (parStep[0]==1);
+				}
+				for(it=l->face.begin(); it!=l->face.end(); it++) {
+					if(*it == f)
+						continue;
+					(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep);
+					int refParDir = runningParDir[0];
+					sameWay = rightWay == (parStep[0]==1);
+					if(sameWay == isMinor) {
+						if(!minorRefine[refParDir][(*it)->id]) {
+							minorRefine[refParDir][(*it)->id] = true;
+							faceStack.push(*it);
+							minor.push(true);
+							edgeIn.push(numb[0]);
+						}
+					} else {
+						if(!majorRefine[refParDir][(*it)->id]) {
+							majorRefine[refParDir][(*it)->id] = true;
+							faceStack.push(*it);
+							minor.push(false);
+							edgeIn.push(numb[0]);
+						}
+					}
+				}
+			}
+		} // end faceStack loop
+		for(uint i=0; i<spline_surfaces_.size(); i++) {
+			double start_u = spline_surfaces_[i]->startparam_u();
+			double stop_u  = spline_surfaces_[i]->endparam_u();
+			double start_v = spline_surfaces_[i]->startparam_v();
+			double stop_v  = spline_surfaces_[i]->endparam_v();
+			if(minorRefine[0][i])
+				spline_surfaces_[i]->insertKnot_u( (1-knotRel)*start_u + knotRel*stop_u);
+			if(minorRefine[1][i])
+				spline_surfaces_[i]->insertKnot_v( (1-knotRel)*start_v + knotRel*stop_v);
+			if(majorRefine[0][i])
+				spline_surfaces_[i]->insertKnot_u( knotRel*start_u + (1-knotRel)*stop_u);
+			if(majorRefine[1][i])
+				spline_surfaces_[i]->insertKnot_v( knotRel*start_v + (1-knotRel)*stop_v);
+		}
+	} // end if surfaceModel
+}
+
+/**********************************************************************************//**
+ * \brief resolve boundary layer refinement
+ * \param patchId  the patch requested for the initial refinement
+ * \param parDir   parametric direction of the refinement
+ * \param start    if the boundary layer is at the parametric start or end value
+ * \param scale    ratio between the new innermost element and the previous innermost
+ *                 element
+ *
+ * This method will refine the elements closest to the requested boundary by splitting
+ * with a suitable ratio. As with knot_insert, this refinement may propagate throughout 
+ * the other patches to ensure a consistent model.
+ *************************************************************************************/
+void SplineModel::boundary_layer_refinement(int patchId, int parDir, bool start, double scale) {
+	if(volumetric_model) {
+		cerr << "Refinement for volumes is not yet implemented\n";
+		exit(142983);
+	} else {
+		vector<double> simpleKnots;
+		if(parDir==0)
+			spline_surfaces_[patchId]->basis_u().knotsSimple(simpleKnots);
+		else
+			spline_surfaces_[patchId]->basis_v().knotsSimple(simpleKnots);
+		double minor   = (start) ? simpleKnots[1] : simpleKnots[simpleKnots.size()-2];
+		double major   = (start) ? simpleKnots[0] : simpleKnots[simpleKnots.size()-1];
+		double newKnot = (1-scale)*major + scale*minor;
+		knot_insert(patchId, parDir, newKnot);
+	}
+}
+
+/**********************************************************************************//**
+ * \brief uniform h-refinement on all patches in all directions
+ *************************************************************************************/
+void SplineModel::uniform_h_refine() {
+	if(volumetric_model) {
+		for(uint i=0; i<spline_volumes_.size(); i++) {
+			vector<double> uniqueKnots;
+			for(int dir=0; dir<3; dir++) {
+				uniqueKnots.clear();
+				spline_volumes_[i]->basis(dir).knotsSimple(uniqueKnots);
+				for(uint j=0; j<uniqueKnots.size()-1; j++)
+					spline_volumes_[i]->insertKnot(dir, (uniqueKnots[j]+uniqueKnots[j+1])/2);
+			}
+		}
+	} else {
+		for(uint i=0; i<spline_surfaces_.size(); i++) {
+			vector<double> uniqueKnots_u;
+			vector<double> uniqueKnots_v;
+			spline_surfaces_[i]->basis_u().knotsSimple(uniqueKnots_u);
+			for(uint j=0; j<uniqueKnots_u.size()-1; j++)
+				spline_surfaces_[i]->insertKnot_u((uniqueKnots_u[j]+uniqueKnots_u[j+1])/2);
+			spline_surfaces_[i]->basis_v().knotsSimple(uniqueKnots_v);
+			for(uint j=0; j<uniqueKnots_v.size()-1; j++)
+				spline_surfaces_[i]->insertKnot_v((uniqueKnots_v[j]+uniqueKnots_v[j+1])/2);
+		}
+	}
+}
+
+/**********************************************************************************//**
+ * \brief uniform p-refinement on all patches in all directions
+ *************************************************************************************/
+void SplineModel::uniform_p_refine() {
+	if(volumetric_model)
+		for(uint i=0; i<spline_volumes_.size(); i++)
+			spline_volumes_[i]->raiseOrder(1,1,1);
+	else 
+		for(uint i=0; i<spline_surfaces_.size(); i++)
+			spline_surfaces_[i]->raiseOrder(1,1);
+}
+
+
 
 
 //! \brief generate the local to global enumerations
@@ -809,10 +1044,6 @@ void SplineModel::readSplines(std::istream &is) {
 		} else if(head.classType() == Class_SplineSurface) {
 			shared_ptr<SplineSurface> s(new SplineSurface());
 			s->read(is);
-			if(s->order_u() == 2)
-				s->raiseOrder(2,0);
-			if(s->order_v() == 2)
-				s->raiseOrder(0,2);
 			spline_surfaces_.push_back(s);
 			topology->addPatch(s);
 			surface_model = true;

@@ -37,6 +37,7 @@ class TopologySet {
 		int numbVolumes() const;
 
 		Volume* getVolume(int id);
+		Face* getFace(int id);
 		
 		std::set<Vertex*> getBoundaryVertices();
 		std::set<Line*>   getBoundaryLines();

@@ -32,7 +32,7 @@ SRCS   = src/SplineModel.cpp \
 
 LIBS = $(GLLIB) $(GOTLIB) -Iinclude -I$(GUIINC)
 
-all: getGNO gui getPROP refine
+all: getGNO gui getPROP refine guiRefine
 
 getGNO: $(SRCS) src/main_getGNO.cpp
 	$(CC) $(CFLAGS) -o bin/gpm_getGNO src/main_getGNO.cpp $(SRCS) $(LIBS)
@@ -46,5 +46,8 @@ getPROP: $(SRCS) src/main_getPROP.cpp
 refine: $(SRCS) src/main_refine.cpp 
 	$(CC) $(CFLAGS) -o bin/gpm_refine src/main_refine.cpp $(SRCS) $(LIBS)
 
+guiRefine: $(SRCS) $(GUISRC) src/main_refine_gui.cpp 
+	$(CC) $(CFLAGS) -o bin/gpm_refine_gui src/main_refine_gui.cpp $(SRCS) $(GUISRC) $(LIBS)
+
 clean:
-	rm -f bin/gpm_getGNO bin/gpm_gui bin/gpm_getPROP bin/gpm_refine
+	rm -f bin/gpm_getGNO bin/gpm_gui bin/gpm_getPROP bin/gpm_refine bin/gpm_refine_gui

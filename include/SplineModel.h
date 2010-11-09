@@ -59,6 +59,12 @@ class SplineModel {
 		// local-to-global mapping functions
 		void generateGlobalNumbers();
 		void generateGlobalNumbersPETSc();
+
+		// refinement schemes
+		void knot_insert(int patchId, int parDir, double knot);
+		void boundary_layer_refinement(int patchId, int parDir, bool start, double scale);
+		void uniform_h_refine();
+		void uniform_p_refine();
 		
 		// model property functions
 		bool addVolumePropertyCode(int volId, int propCode, bool inclusive=false);
@@ -69,6 +75,7 @@ class SplineModel {
 		int getFacePropertyCode(int volId, int faceId);
 		int getLinePropertyCode(int volId, int lineId);
 		int getVertexPropertyCode(int volId, int vertId);
+		bool isVolumetricModel() const;
 		
 		// input-/output-functions
 		void writeSplines(std::ostream &os) const;
