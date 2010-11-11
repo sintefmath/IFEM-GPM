@@ -62,7 +62,7 @@ class SplineModel {
 
 		// refinement schemes
 		void knot_insert(int patchId, int parDir, double knot);
-		void boundary_layer_refinement(int patchId, int parDir, bool start, double scale);
+		void boundary_layer_refinement(int patchId, int parDir, bool start, double scale, int n);
 		void uniform_h_refine();
 		void uniform_p_refine();
 		

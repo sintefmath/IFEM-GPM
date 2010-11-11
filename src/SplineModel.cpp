@@ -416,12 +416,15 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
  * \param start    if the boundary layer is at the parametric start or end value
  * \param scale    ratio between the new innermost element and the previous innermost
  *                 element
+ * \param n        number of new knot lines inserted
  *
  * This method will refine the elements closest to the requested boundary by splitting
  * with a suitable ratio. As with knot_insert, this refinement may propagate throughout 
  * the other patches to ensure a consistent model.
  *************************************************************************************/
-void SplineModel::boundary_layer_refinement(int patchId, int parDir, bool start, double scale) {
+void SplineModel::boundary_layer_refinement(int patchId, int parDir, bool start, double scale, int n) {
+	if(n<1)
+		return;
 	if(volumetric_model) {
 		cerr << "Refinement for volumes is not yet implemented\n";
 		exit(142983);
@@ -431,10 +434,23 @@ void SplineModel::boundary_layer_refinement(int patchId, int parDir, bool start,
 			spline_surfaces_[patchId]->basis_u().knotsSimple(simpleKnots);
 		else
 			spline_surfaces_[patchId]->basis_v().knotsSimple(simpleKnots);
+		double pow = 1;
+		double sum = 0;
+		for(int i=0; i<=n; i++) {
+			sum += pow;
+			pow *= scale;
+		}
 		double minor   = (start) ? simpleKnots[1] : simpleKnots[simpleKnots.size()-2];
 		double major   = (start) ? simpleKnots[0] : simpleKnots[simpleKnots.size()-1];
-		double newKnot = (1-scale)*major + scale*minor;
-		knot_insert(patchId, parDir, newKnot);
+		double alpha   = 1.0/sum;
+		sum = 0;
+		pow = 1;
+		for(int i=0; i<n; i++) {
+			sum += alpha*pow;
+			pow *= scale;
+			double newKnot = sum*major + (1-sum)*minor;
+			knot_insert(patchId, parDir, newKnot);
+		}
 	}
 }
 
