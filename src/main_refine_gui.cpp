@@ -140,7 +140,7 @@ void performBoundaryRefine(Button *caller) {
 			for(uint j=0; j<curves.size(); j++) {
 				for(uint k=0; k<curves[j].size(); k++) {
 					if(curves[j][k].get() == c)  {
-						model.boundary_layer_refinement(j, 1-k/2, 1-k%2, 0.5);
+						model.boundary_layer_refinement(j, 1-k/2, 1-k%2, 0.5, 1);
 						anythingDone = true;
 					}
 				}
@@ -177,7 +177,6 @@ void performUniformRefine(Button *caller) {
 			for(uint j=0; j<volumes.size(); j++)
 				if(volumes[j].get() == v) 
 					; // insert refinement call here
-
 		} else if(selected[i]->classType() == SURFACE) {
 			SplineSurface *s = ((SurfaceDisplay*)selected[i])->surf;
 			bool setOnce = false;

@@ -85,10 +85,6 @@ vector<shared_ptr<SplineVolume> >           volumes;
 vector<vector<shared_ptr<SplineSurface> > > surfaces;
 vector<vector<shared_ptr<SplineCurve> > >   curves;
 vector<vector<shared_ptr<Point> > >         points;
-bool volume_disp = false;
-bool face_disp   = true;
-bool line_disp   = true;
-bool vertex_disp = true;
 
 Button *showVolumes   = new Button("Volumes");
 Button *showFaces     = new Button("Faces");
@@ -145,15 +141,19 @@ void keyClick(unsigned char key) {
 				for(uint j=0; j<surfaces.size() && !setOnce; j++) {
 					for(uint k=0; k<surfaces[j].size(); k++) {
 						if(surfaces[j][k].get() == s)  {
-							model.addFacePropertyCode(j, k, code); // this sets all internal codes
-							// inclusive endpoints, so we need to colorize edges & vertices as well
-							vector<int> edgeLines = Line::getLineEnumeration(k);
-							vector<int> edgePoint = Vertex::getVertexEnumeration(k);
-							for(int ii=0; ii<4; ii++) {
-								CurveDisplay *cd = gui->getDisplayObject(curves[j][edgeLines[ii]].get());
-								PointDisplay *pd = gui->getDisplayObject(points[j][edgePoint[ii]].get());
-								if(cd) cd->setColor(color.R, color.G, color.B);
-								pd->setColor(color.R, color.G, color.B);
+							if(showLines->isSelected()) {
+								model.addFacePropertyCode(j, k, code); // this sets all internal codes
+								// inclusive endpoints, so we need to colorize edges & vertices as well
+								vector<int> edgeLines = Line::getLineEnumeration(k);
+								vector<int> edgePoint = Vertex::getVertexEnumeration(k);
+								for(int ii=0; ii<4; ii++) {
+									CurveDisplay *cd = gui->getDisplayObject(curves[j][edgeLines[ii]].get());
+									PointDisplay *pd = gui->getDisplayObject(points[j][edgePoint[ii]].get());
+									if(cd) cd->setColor(color.R, color.G, color.B);
+									pd->setColor(color.R, color.G, color.B);
+								}
+							} else {
+								model.addFacePropertyCode(j, k, code, false); // not include end lines/vertices
 							}
 							setOnce = true;
 							break;
@@ -166,13 +166,17 @@ void keyClick(unsigned char key) {
 				for(uint j=0; j<curves.size(); j++) {
 					for(uint k=0; k<curves[j].size(); k++) {
 						if(curves[j][k].get() == c)  {
-							model.addLinePropertyCode(j, k, code);
-							int v1, v2;
-							Vertex::getVertexEnumeration(k, v1, v2);
-							PointDisplay *pd = gui->getDisplayObject(points[j][v1].get());
-							pd->setColor(color.R, color.G, color.B);
-							pd = gui->getDisplayObject(points[j][v2].get());
-							pd->setColor(color.R, color.G, color.B);
+							if(showPoints->isSelected()) {
+								model.addLinePropertyCode(j, k, code);
+								int v1, v2;
+								Vertex::getVertexEnumeration(k, v1, v2);
+								PointDisplay *pd = gui->getDisplayObject(points[j][v1].get());
+								pd->setColor(color.R, color.G, color.B);
+								pd = gui->getDisplayObject(points[j][v2].get());
+								pd->setColor(color.R, color.G, color.B);
+							} else {
+								model.addLinePropertyCode(j, k, code, false);
+							}
 						}
 					}
 				}
@@ -216,7 +220,6 @@ void ButtonClick(Button *caller) {
 		} else {
 			gui->hideObjects(POINT);
 		}
-		vertex_disp = !vertex_disp;
 	}
 }
 
