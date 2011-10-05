@@ -89,7 +89,7 @@ int main(int argc, char** argv)
       // TODO: Ask the splines people how to fix this properly, that is, how
       // may be obtain the correct weights for basis1 when *surf is a NURBS?
       if (s_it->rational())
-        std::cout <<"WARNING: The geometry basis is rational (using NURBS)\n."
+        std::cerr <<"WARNING: The geometry basis is rational (using NURBS)\n."
                   <<"         The basis for the unknown fields of one degree"
                   <<" higher will however be non-rational.\n"
                   <<"         This may affect accuracy.\n"<< std::endl;
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
       // TODO: Ask the splines people how to fix this properly, that is, how
       // may be obtain the correct weights for basis1 when *v_it is a NURBS?
       if (v_it->rational())
-        std::cout <<"WARNING: The geometry basis is rational (using NURBS)\n."
+        std::cerr <<"WARNING: The geometry basis is rational (using NURBS)\n."
                   <<"         The basis for the unknown fields of one degree"
                   <<" higher will however be non-rational.\n"
                   <<"         This may affect accuracy.\n"<< std::endl;
