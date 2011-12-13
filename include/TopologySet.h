@@ -3,7 +3,7 @@
 
 #include <set>
 #include <vector>
-#include <GoTools/trivariate/SplineVolume.h>
+#include "SplineModel.h"
 
 class Volume;
 class Face;
@@ -21,12 +21,12 @@ class Vertex;
 class TopologySet {
 	public:
 		TopologySet(double tol=1e-4);
-		TopologySet(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces, double tol=1e-4);
-		TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes, double tol=1e-4);
+		TopologySet(std::vector<SurfacePointer> &spline_surfaces, double tol=1e-4);
+		TopologySet(std::vector<VolumePointer> &spline_volumes, double tol=1e-4);
 		~TopologySet();
 
-		void addPatch(boost::shared_ptr<Go::SplineVolume> vol);
-		void addPatch(boost::shared_ptr<Go::SplineSurface> surf);
+		void addPatch(VolumePointer vol);
+		void addPatch(SurfacePointer surf);
 		void buildTopology();
 
 		int numbVertices() const;
@@ -67,8 +67,8 @@ class TopologySet {
  
  		bool volumetric_model;
  		bool surface_model;
-		std::vector<boost::shared_ptr<Go::SplineSurface> >  spline_surfaces_; //!< Spline objects
-		std::vector<boost::shared_ptr<Go::SplineVolume> > spline_volumes_; //!< Spline objects
+		std::vector<SurfacePointer>  spline_surfaces_; //!< Spline objects
+		std::vector<VolumePointer> spline_volumes_; //!< Spline objects
 };
 
 #endif

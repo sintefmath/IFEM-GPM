@@ -10,8 +10,6 @@
 #include "primitives.h"
 
 using namespace std;
-using namespace Go;
-using boost::shared_ptr;
 
 /**********************************************************************************//**
  * \brief Constructor
@@ -32,7 +30,7 @@ TopologySet::TopologySet(double tol) {
  * Note that the constructor is NOT creating the topology. It should usually immediately be followed by a call to
  * buildTopology().
  *************************************************************************************/
-TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces, double tol) {
+TopologySet::TopologySet(std::vector<SurfacePointer> &spline_surfaces, double tol) {
 	this->tol = tol;
 	spline_surfaces_ = spline_surfaces;
 	volumetric_model = false;
@@ -47,7 +45,7 @@ TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineSurface> > &spl
  * Note that the constructor is NOT creating the topology. It should usually immediately be followed by a call to
  * buildTopology().
  *************************************************************************************/
-TopologySet::TopologySet(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes, double tol) {
+TopologySet::TopologySet(std::vector<VolumePointer> &spline_volumes, double tol) {
 	this->tol = tol;
 	spline_volumes_ = spline_volumes;
 	volumetric_model = true;
@@ -74,7 +72,7 @@ TopologySet::~TopologySet() {
  * Nice method to use if you are sequentially building up your topology model. Note that
  * this causes error if called on a volumetric model.
  *************************************************************************************/
-void TopologySet::addPatch(boost::shared_ptr<Go::SplineSurface> surf) {
+void TopologySet::addPatch(SurfacePointer surf) {
 	if(volumetric_model) {
 		cerr << "Trying to add surface patch to a volumetric topology model\n";
 		exit(4251);
@@ -91,7 +89,7 @@ void TopologySet::addPatch(boost::shared_ptr<Go::SplineSurface> surf) {
  * Nice method to use if you are sequentially building up your topology model. Note that
  * this causes error if called on a surface model.
  *************************************************************************************/
-void TopologySet::addPatch(boost::shared_ptr<Go::SplineVolume> vol) {
+void TopologySet::addPatch(VolumePointer vol) {
 	if(surface_model) {
 		cerr << "Trying to add volume patch to a surface topology model\n";
 		exit(4252);
@@ -127,7 +125,7 @@ void TopologySet::buildTopology() {
 				for(int v=0; v<2; v++) {
 					for(int u=0; u<2; u++) {
 						int coefNmb = u*(n1-1) + v*n1*(n2-1) + w*n1*n2*(n3-1);
-						Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
+                                                Go::Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
 
 						if(rat)
 							for(int aa=0; aa<dim+rat; aa++)
@@ -174,7 +172,7 @@ void TopologySet::buildTopology() {
 						// cout << "Volume " << vol->id << " line " << lineCount << endl;
 						// cout << "Line: " << *line << endl;
 						for(int cpCount=0; cpCount<spline_volumes_[i]->numCoefs(parDir); cpCount++) {
-							Point p(coef+start*(dim+rat), coef+(start+1)*(dim+rat));
+							Go::Point p(coef+start*(dim+rat), coef+(start+1)*(dim+rat));
 							if(rat)
 								for(int aa=0; aa<dim+rat; aa++)
 									p[aa] /= p[dim];
@@ -220,7 +218,7 @@ void TopologySet::buildTopology() {
 
 					for(int v=0; v<v_siz; v++) {
 						for(int u=0; u<u_siz; u++) {
-							Point p(coef+coefNmb*(dim+rat), coef+(coefNmb+1)*(dim+rat));
+							Go:: Point p(coef+coefNmb*(dim+rat), coef+(coefNmb+1)*(dim+rat));
 							if(rat)
 								for(int aa=0; aa<dim+rat; aa++)
 									p[aa] /= p[dim];
@@ -262,7 +260,7 @@ void TopologySet::buildTopology() {
 			for(int v=0; v<2; v++) {
 				for(int u=0; u<2; u++) {
 					int coefNmb = u*(n1-1) + v*n1*(n2-1);
-					Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
+                                        Go::Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
 
 					if(rat)
 						for(int aa=0; aa<dim+rat; aa++)
@@ -304,7 +302,7 @@ void TopologySet::buildTopology() {
 					// cout << "Line: " << *line << endl;
 					for(int cpCount=0; (parDir==0 && cpCount<spline_surfaces_[i]->numCoefs_u()) ||
 					                   (parDir==1 && cpCount<spline_surfaces_[i]->numCoefs_v())   ; cpCount++) {
-						Point p(coef+start*(dim+rat), coef+(start+1)*(dim+rat));
+						Go::Point p(coef+start*(dim+rat), coef+(start+1)*(dim+rat));
 						if(rat)
 							for(int aa=0; aa<dim+rat; aa++)
 								p[aa] /= p[dim];

@@ -20,7 +20,6 @@ typedef unsigned int uint;
 
 using namespace std;
 using namespace Go;
-using boost::shared_ptr;
 
 int    eff_patch          = -1;
 int    prefDir            = -1;

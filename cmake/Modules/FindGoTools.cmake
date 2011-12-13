@@ -15,7 +15,6 @@ IF(GoTools_BUILD_ALL)
     CACHE FILE "GoTools Core library")
 ENDIF(GoTools_BUILD_ALL)
 
-
 # Find header files
 FIND_PATH(GoTools_INCLUDE_DIRS "GoTools/geometry/SplineSurface.h"
   /sima/libs/GoTools/include
@@ -35,6 +34,27 @@ FIND_LIBRARY(GoTools_LIBRARIES
   PATH_SUFFIXES GoTools
   )
 
+# Check for newer GoTools
+EXECUTE_PROCESS(COMMAND cat "${GoTools_INCLUDE_DIRS}/GoTools/geometry/GoTools.h" OUTPUT_VARIABLE GOTOOLS_HEADER)
+STRING(REGEX REPLACE ".*GO_VERSION_MAJOR ([0-9]+).*" "\\1" GoTools_VERSION_MAJOR ${GOTOOLS_HEADER})
+STRING(REGEX REPLACE ".*GO_VERSION_MINOR ([0-9]+).*" "\\1" GoTools_VERSION_MINOR ${GOTOOLS_HEADER})
+
+IF ("${GoTools_VERSION_MAJOR}" MATCHES 3)
+  INCLUDE(CheckCXXCompilerFlag)
+  IF(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+  # check if compiler supports c++-0x
+    CHECK_CXX_COMPILER_FLAG("-std=gnu++0x" HAVE_0x)
+    IF(HAVE_0x)
+      SET(GoTools_CXX_FLAGS "-std=gnu++0x")
+    ELSE(HAVE_0x)
+      MESSAGE("A compiler with c++-0x support is needed")
+      EXIT(1)
+    ENDIF(HAVE_0x)
+  ELSE(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+    MESSAGE("Cannot verify that compiler supports c++-0x, bailing")
+    EXIT(1)
+  ENDIF(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+ENDIF ("${GoTools_VERSION_MAJOR}" MATCHES 3)
 
 # Check that we have found everything
 SET(GoTools_FOUND FALSE)

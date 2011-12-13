@@ -19,8 +19,6 @@
 #include <GoTools/geometry/ObjectHeader.h>
 
 using namespace std;
-using namespace Go;
-using boost::shared_ptr;
 
 SplineModel::SplineModel() {
 	sl2g = new surfGlobNumber[0];
@@ -34,7 +32,7 @@ SplineModel::SplineModel() {
  * \brief Constructor
  * \param spline_surfaces All spline volumes to be considered part of this model
  *************************************************************************************/
-SplineModel::SplineModel(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces) {
+SplineModel::SplineModel(std::vector<SurfacePointer> &spline_surfaces) {
 	sl2g = new surfGlobNumber[0];
 	vl2g = new volGlobNumber[0];
 	topology = new TopologySet(spline_surfaces);
@@ -47,7 +45,7 @@ SplineModel::SplineModel(std::vector<boost::shared_ptr<Go::SplineSurface> > &spl
  * \brief Constructor
  * \param spline_volumes All spline volumes to be considered part of this model
  *************************************************************************************/
-SplineModel::SplineModel(std::vector<boost::shared_ptr<Go::SplineVolume> > &spline_volumes) {
+SplineModel::SplineModel(std::vector<VolumePointer> &spline_volumes) {
 	sl2g = new surfGlobNumber[0];
 	vl2g = new volGlobNumber[0];
 	topology = new TopologySet(spline_volumes);
@@ -73,11 +71,11 @@ TopologySet* SplineModel::getTopology() {
 	return topology;
 }
 
-std::vector<boost::shared_ptr<Go::SplineSurface> >& SplineModel::getSplineSurfaces() {
+std::vector<SurfacePointer>& SplineModel::getSplineSurfaces() {
 	return spline_surfaces_;
 }
 
-std::vector<boost::shared_ptr<Go::SplineVolume> >& SplineModel::getSplineVolumes() {
+std::vector<VolumePointer>& SplineModel::getSplineVolumes() {
 	return spline_volumes_;
 }
 
@@ -98,7 +96,7 @@ bool SplineModel::enforceRightHandSystem() {
 			double u = (spline_volumes_[i]->startparam(0) + spline_volumes_[i]->endparam(0)) / 2;
 			double v = (spline_volumes_[i]->startparam(1) + spline_volumes_[i]->endparam(1)) / 2;
 			double w = (spline_volumes_[i]->startparam(2) + spline_volumes_[i]->endparam(2)) / 2;
-			vector<Point> results(4); // one position and three derivatives
+			vector<Go::Point> results(4); // one position and three derivatives
 			spline_volumes_[i]->point(results, u, v, w, 1);
 			double jacobian = (results[1] % results[2])*results[3];
 			if(jacobian < 0) {
@@ -111,9 +109,9 @@ bool SplineModel::enforceRightHandSystem() {
 			// do test evaluation in the middle of the parametric domain
 			double u = (spline_surfaces_[i]->startparam_u() + spline_surfaces_[i]->endparam_u()) / 2;
 			double v = (spline_surfaces_[i]->startparam_v() + spline_surfaces_[i]->endparam_v()) / 2;
-			vector<Point> results(3); // one position and two derivatives
+			vector<Go::Point> results(3); // one position and two derivatives
 			spline_surfaces_[i]->point(results, u, v, 1);
-			Point normal = results[1] % results[2];
+                        Go::Point normal = results[1] % results[2];
 			double jacobian = normal[2];
 			if(jacobian < 0) {
 				anything_switched = true;
@@ -561,7 +559,7 @@ void SplineModel::generateGlobalNumbersPETSc()
 	
 	Line* l1 = (*v1)->line[e];	
 	Volume *first_vol = *(l1->volume.begin());
-	shared_ptr<SplineVolume> sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
+	VolumePointer sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
 	first_vol->getEdgeEnumeration(l1, edges, dir, step);
 	int numCoeffs = sv->numCoefs(dir[0])-2; // coefs_here SHOULD be identical for all lines in all volumes for this line
 	
@@ -596,7 +594,7 @@ void SplineModel::generateGlobalNumbersPETSc()
 	 *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
 	 *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
 	 */
-	shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
+	VolumePointer s_volume = spline_volumes_[f->volume[0]->id];
 	int numCoeff_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
 	int numCoeff_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
 	int numCoeff    = numCoeff_u*numCoeff_v;
@@ -671,7 +669,7 @@ void SplineModel::generateGlobalNumbersPETSc()
       }
     
     // Assign node numbers to volumes
-    shared_ptr<SplineVolume> s_volume = spline_volumes_[(*v1)->id];
+    VolumePointer s_volume = spline_volumes_[(*v1)->id];
     int numCoeff_u = s_volume->numCoefs(0)-2;
     int numCoeff_v = s_volume->numCoefs(1)-2;
     int numCoeff_w = s_volume->numCoefs(2)-2;
@@ -710,7 +708,7 @@ void SplineModel::generateGlobalNumbers() {
 		set<Line*>::iterator   l_it ;
 		set<Face*>::iterator   f_it ;
 		
-		vector<shared_ptr<SplineVolume> >::iterator vol_it;
+		vector<VolumePointer>::iterator vol_it;
 		
 		// Enumerate vertices, lines, surfaces and finally volumes, in that order
 		int glob_i = 0;
@@ -734,7 +732,7 @@ void SplineModel::generateGlobalNumbers() {
 			vector<int> parDir;
 			vector<int> parStep;
 			Volume *first_vol = (*(*l_it)->volume.begin());
-			shared_ptr<SplineVolume> sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
+			VolumePointer sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
 			first_vol->getEdgeEnumeration(*l_it, numb, parDir, parStep);
 			int coefs_here = sv->numCoefs(parDir[0])-2; // coefs_here SHOULD be identical for all lines in all volumes for this line
 			if(coefs_here > 0) {
@@ -765,7 +763,7 @@ void SplineModel::generateGlobalNumbers() {
 		 	*  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
 		 	*  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
 		 	*/
-			shared_ptr<SplineVolume> s_volume = spline_volumes_[f->volume[0]->id];
+			VolumePointer s_volume = spline_volumes_[f->volume[0]->id];
 			int numCoef_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2;
 			int numCoef_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2;
 			int coefs_here = numCoef_u*numCoef_v;
@@ -834,7 +832,7 @@ void SplineModel::generateGlobalNumbers() {
 		
 			// for all VOLUMES assign startnumber
 			for(uint i=0; i<spline_volumes_.size(); i++) {
-			shared_ptr<SplineVolume> s_volume = spline_volumes_[i];
+			VolumePointer s_volume = spline_volumes_[i];
 			int numCoef_u = s_volume->numCoefs(0)-2;
 			int numCoef_v = s_volume->numCoefs(1)-2;
 			int numCoef_w = s_volume->numCoefs(2)-2;
@@ -862,7 +860,7 @@ void SplineModel::generateGlobalNumbers() {
 		set<Line*>::iterator   l_it ;
 		set<Face*>::iterator   f_it;
 		
-		vector<shared_ptr<SplineSurface> >::iterator surf_it;
+		vector<SurfacePointer>::iterator surf_it;
 		
 		// Enumerate vertices, lines and finally surfaces, in that order
 		int glob_i = 0;
@@ -885,7 +883,7 @@ void SplineModel::generateGlobalNumbers() {
 			vector<int> parDir;
 			vector<int> parStep;
 			Face *first_face = (*(*l_it)->face.begin());
-			shared_ptr<SplineSurface> sf = spline_surfaces_[first_face->id]; // this edge should have at least one face-connection
+			SurfacePointer sf = spline_surfaces_[first_face->id]; // this edge should have at least one face-connection
 			first_face->getEdgeEnumeration(*l_it, numb, parDir, parStep);
 			int coefs_here = (parDir[0]==0) ? sf->numCoefs_u()-2 : sf->numCoefs_v()-2; // coefs_here should be identical for all lines in all faces for this line
 			if(coefs_here > 0) {
@@ -910,7 +908,7 @@ void SplineModel::generateGlobalNumbers() {
 		
 		// for all FACES assign startnumber
 		for(uint i=0; i<spline_surfaces_.size(); i++) {
-			shared_ptr<SplineSurface> ss = spline_surfaces_[i];
+			SurfacePointer ss = spline_surfaces_[i];
 			int numCoef_u = ss->numCoefs_u()-2;
 			int numCoef_v = ss->numCoefs_v()-2;
 			int coefs_here  = numCoef_u * numCoef_v;
@@ -1048,17 +1046,17 @@ void SplineModel::writeSplines(std::ostream &os) const {
 }
 
 void SplineModel::readSplines(std::istream &is) {
-	ObjectHeader head;
+	Go::ObjectHeader head;
 	while(!is.eof()) {
 		head.read(is);
-		if(head.classType() == Class_SplineVolume) {
-			shared_ptr<SplineVolume> v(new SplineVolume());
+		if(head.classType() == Go::Class_SplineVolume) {
+			VolumePointer v(new Go::SplineVolume());
 			v->read(is);
 			spline_volumes_.push_back(v);
 			topology->addPatch(v);
 			volumetric_model = true;
-		} else if(head.classType() == Class_SplineSurface) {
-			shared_ptr<SplineSurface> s(new SplineSurface());
+		} else if(head.classType() == Go::Class_SplineSurface) {
+			SurfacePointer s(new Go::SplineSurface());
 			s->read(is);
 			spline_surfaces_.push_back(s);
 			topology->addPatch(s);

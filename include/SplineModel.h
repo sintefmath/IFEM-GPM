@@ -2,7 +2,16 @@
 #define _SPLINE_MODEL_H
 
 #include <vector>
+#include <GoTools/geometry/GoTools.h>
 #include <GoTools/trivariate/SplineVolume.h>
+
+#if defined(GO_VERSION_MAJOR) && GO_VERSION_MAJOR >= 3
+typedef std::shared_ptr<Go::SplineSurface> SurfacePointer;
+typedef std::shared_ptr<Go::SplineVolume> VolumePointer; 
+#else
+typedef boost::shared_ptr<Go::SplineSurface> SurfacePointer;
+typedef boost::shared_ptr<Go::SplineVolume> VolumePointer; 
+#endif
 
 class TopologySet;
 
@@ -43,14 +52,14 @@ class SplineModel {
 	public:
 		// constructors and destructors
 		SplineModel();
-		SplineModel(std::vector<boost::shared_ptr<Go::SplineSurface> > &spline_surfaces);
-		SplineModel(std::vector<boost::shared_ptr<Go::SplineVolume> >  &spline_volumes);
+		SplineModel(std::vector<SurfacePointer> &spline_surfaces);
+		SplineModel(std::vector<VolumePointer>  &spline_volumes);
 		~SplineModel();
 
 		// common get-functions
 		TopologySet *getTopology();
-		std::vector<boost::shared_ptr<Go::SplineVolume> > &getSplineVolumes();
-		std::vector<boost::shared_ptr<Go::SplineSurface> > &getSplineSurfaces();
+		std::vector<VolumePointer> &getSplineVolumes();
+		std::vector<SurfacePointer> &getSplineSurfaces();
 		
 		// model geometry functions
 		void setTopologyTolerance(double tol);
@@ -91,8 +100,8 @@ class SplineModel {
 		bool surface_model;
 		volGlobNumber  *vl2g;
 		surfGlobNumber *sl2g;
-		std::vector<boost::shared_ptr<Go::SplineSurface> > spline_surfaces_; //!< Spline surface objects
-		std::vector<boost::shared_ptr<Go::SplineVolume> >  spline_volumes_;  //!< Spline volume objects
+		std::vector<SurfacePointer> spline_surfaces_; //!< Spline surface objects
+		std::vector<VolumePointer>  spline_volumes_;  //!< Spline volume objects
 
 };
 
