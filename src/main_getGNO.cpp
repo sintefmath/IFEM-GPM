@@ -22,7 +22,7 @@ using namespace std;
 using namespace Go;
 
 bool   verbose         = false;
-bool   petsc           = false;
+bool   legacy          = false;
 string fileUsage       = "\
 File usage: gpm [-v] <inputFile> \n\
   \n\
@@ -30,7 +30,7 @@ File usage: gpm [-v] <inputFile> \n\
     <inputFile> : one or more .g2-files describing the spline volumes \n\
   FLAGS\n\
     -v          : verbose output  \n\
-    -petsc      : alternative enumberation scheme  \n\
+    -legacy     : old enumeration scheme  \n\
     -help       : display this help screen";
 SplineModel model;
 
@@ -43,8 +43,8 @@ void processParameters(int argc, char** argv) {
 		} else if(strcmp(arg, "-help") == 0) {
 			cout << fileUsage << endl;
 			exit(0);
-		} else if(strcmp(arg, "-petsc") == 0) {
-			petsc = true;
+		} else if(strcmp(arg, "-legacy") == 0) {
+			legacy = true;
 		} else {
 			ifstream inFile;
 			inFile.open(arg);
@@ -121,10 +121,10 @@ int main(int argc, char **argv) {
 	// cout << " >>>   =======  Spline model ==========  <<<" << endl;
 	// model.writeSplines(cout);
 	// cout << " >>>   ======= Global numbering =======  <<<" << endl;
-	if (petsc)
-		model.generateGlobalNumbersPETSc();
+	if (legacy)
+	  model.generateGlobalNumbers();
 	else
-		model.generateGlobalNumbers();
+	  model.generateGlobalNumbersPETSc();
 	model.writeGlobalNumberOrdering(cout);
 	// cout << " >>>   ======= Model properties =======  <<<" << endl;
 	// model.writeModelProperties(cout);
