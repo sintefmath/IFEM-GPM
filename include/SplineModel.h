@@ -67,7 +67,7 @@ class SplineModel {
 
 		// local-to-global mapping functions
 		void generateGlobalNumbers();
-		void generateGlobalNumbersPETSc();
+		void generateGlobalNumbersPETSc(bool mixed = false, int iStart = 0);
 
 		// refinement schemes
 		void knot_insert(int patchId, int parDir, double knot);
