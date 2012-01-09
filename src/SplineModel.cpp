@@ -160,18 +160,23 @@ bool SplineModel::addVolumePropertyCode(int volId, int propCode, bool inclusive)
 }
 /**********************************************************************************//**
  * \brief sets a (boundary condition) property code to a face
- * \param volId     volume identifier (natural numbering if read from a .g2-file)
- * \param faceId    local face number corresponding to the volume volId, as defined in
- *                  the class Volume (values 0-5)
+ * \param patchId   patch identifier (natural numbering if read from a .g2-file)
+ * \param faceId    local face number corresponding to the patch patchId, as defined in
+ *                  the class Volume (volumeModel: values 0-5, surfaceModel: value IGNORED)
  * \param propCode  property code
  * \param inclusive Whether the corners or lines associated with the face should get 
  *                  the same code
  * \returns true if any corners or lines had previously been tagged with a different 
  *          code and has now been overwritten (only applicable if inclusive=true)
  *************************************************************************************/
-bool SplineModel::addFacePropertyCode(int volId, int faceId, int propCode, bool inclusive) {
-	Volume* v = topology->getVolume(volId);
-	Face*   f = v->face[faceId];
+bool SplineModel::addFacePropertyCode(int patchId, int faceId, int propCode, bool inclusive) {
+	Face* f;
+	if(volumetric_model) {
+		Volume* v = topology->getVolume(patchId);
+		f = v->face[faceId];
+	} else {
+		f = topology->getFace(patchId);
+	}
 	f->bc_code = propCode;
 	if(inclusive) {
 		bool changes = false;
@@ -194,17 +199,23 @@ bool SplineModel::addFacePropertyCode(int volId, int faceId, int propCode, bool 
 }
 /**********************************************************************************//**
  * \brief sets a (boundary condition) property code to a line
- * \param volId     volume identifier (natural numbering if read from a .g2-file)
- * \param lineId    local line number corresponding to the volume volId, as defined in
- *                  the class Volume (values 0-11)
+ * \param patchId   volume identifier (natural numbering if read from a .g2-file)
+ * \param lineId    local line number corresponding to the patch patchId, as defined in
+ *                  the class Volume (volumeModel: values 0-11, surfaceModel: 0-3)
  * \param propCode  property code
  * \param inclusive Whether the corners associated with the face should get the same code
  * \returns true if any corners had previously been tagged with a different code and has 
  *          now been overwritten (only applicable if inclusive=true)
  *************************************************************************************/
-bool SplineModel::addLinePropertyCode(int volId, int lineId, int propCode, bool inclusive) {
-	Volume* v = topology->getVolume(volId);
-	Line*   l = v->line[lineId];
+bool SplineModel::addLinePropertyCode(int patchId, int lineId, int propCode, bool inclusive) {
+	Line* l;
+	if(volumetric_model) {
+		Volume* v = topology->getVolume(patchId);
+		l = v->line[lineId];
+	} else {
+		Face* f = topology->getFace(patchId);
+		l = f->line[lineId];
+	}
 	l->bc_code = propCode;
 	if(inclusive) {
 		bool changes = false;
@@ -219,34 +230,58 @@ bool SplineModel::addLinePropertyCode(int volId, int lineId, int propCode, bool 
 }
 /**********************************************************************************//**
  * \brief sets a (boundary condition) property code to a vertex
- * \param volId     volume identifier (natural numbering if read from a .g2-file)
- * \param vertId    local vertex number corresponding to the volume volId, as defined in
- *                  the class Volume (values 0-7)
+ * \param patchId   volume identifier (natural numbering if read from a .g2-file)
+ * \param vertId    local vertex number corresponding to the patch patchId, as defined in
+ *                  the class Volume (volumeModel: values 0-7, surfaceModel: 0-3)
  * \param propCode  property code
  *************************************************************************************/
-void SplineModel::addVertexPropertyCode(int volId, int vertId, int propCode) {
-	Volume* v = topology->getVolume(volId);
-	v->corner[vertId]->bc_code = propCode;
+void SplineModel::addVertexPropertyCode(int patchId, int vertId, int propCode) {
+	if(volumetric_model) {
+		Volume* v = topology->getVolume(patchId);
+		v->corner[vertId]->bc_code = propCode;
+	} else {
+		Face* f = topology->getFace(patchId);
+		f->corner[vertId]->bc_code = propCode;
+	}
 }
 
-int SplineModel::getVolumePropertyCode(int volId) {
-	Volume* v = topology->getVolume(volId);
-	return v->material_code;
+int SplineModel::getVolumePropertyCode(int patchId) {
+	if(volumetric_model) {
+		Volume* v = topology->getVolume(patchId);
+		return v->material_code;
+	} else {
+		return -1;
+	}
 }
 
-int SplineModel::getFacePropertyCode(int volId, int faceId) {
-	Volume* v = topology->getVolume(volId);
-	return v->face[faceId]->bc_code;
+int SplineModel::getFacePropertyCode(int patchId, int faceId) {
+	if(volumetric_model) {
+		Volume* v = topology->getVolume(patchId);
+		return v->face[faceId]->bc_code;
+	} else {
+		Face* f = topology->getFace(patchId);
+		return f->bc_code;
+	}
 }
 
-int SplineModel::getLinePropertyCode(int volId, int lineId) {
-	Volume* v = topology->getVolume(volId);
-	return v->line[lineId]->bc_code;
+int SplineModel::getLinePropertyCode(int patchId, int lineId) {
+	if(volumetric_model) {
+		Volume* v = topology->getVolume(patchId);
+		return v->line[lineId]->bc_code;
+	} else {
+		Face* f = topology->getFace(patchId);
+		return f->line[lineId]->bc_code;
+	}
 }
 
-int SplineModel::getVertexPropertyCode(int volId, int vertId) {
-	Volume* v = topology->getVolume(volId);
+int SplineModel::getVertexPropertyCode(int patchId, int vertId) {
+	if(volumetric_model) {
+	Volume* v = topology->getVolume(patchId);
 	return v->corner[vertId]->bc_code;
+	} else {
+		Face* f = topology->getFace(patchId);
+		return f->corner[vertId]->bc_code;
+	}
 }
 
 /**********************************************************************************//**
@@ -1046,32 +1081,49 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 
 	/***************     WRITE IT IN THE INPUT-FORM, NOT REALLY USEFULL FOR PRODUCTION    ***********************/
 
-	for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++) {
-		Volume* v = *v_it;
-		if(v->material_code != 0)
-			// os << "Volume " << v->id << " " << v->material_code << endl;
-			os << v->material_code << " " << v->id << " 3 " << endl;
-	}
-	for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
-		Face *f = *f_it;
-		if(f->bc_code != 0) 
-			// os << "Face " << f->volume[0]->id << " " << f->face[0] << " " << f->bc_code << " 0" << endl;
-			os << f->bc_code << " " << f->volume[0]->id << " 2 " << f->face[0] << endl;
-	}
-	for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
-		Line *l = *l_it;
-		vector<int> numb, parDir, parStep;
-		(*l->volume.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
-		if(l->bc_code != 0)
-			// os << "Line " << (*l->volume.begin())->id << " " << numb[0] << " " << l->bc_code << " 0" << endl;
-			os << l->bc_code << " " << (*l->volume.begin())->id << " 1 " << numb[0] << endl;
-	}
-	for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
-		Vertex *c = *c_it;
-		vector<int> corner_id = (*c->volume.begin())->getVertexEnumeration(c);
-		if(c->bc_code != 0)
-			// os << "Vertex " << (*c->volume.begin())->id << " " << corner_id[0] << " " << c->bc_code << endl;
-			os << c->bc_code << " " << (*c->volume.begin())->id << " 0 " << corner_id[0] << endl;
+	if(volumetric_model) {
+		for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++) {
+			Volume* v = *v_it;
+			if(v->material_code != 0)
+				os << v->material_code << " " << v->id << " 3 " << endl;
+		}
+		for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
+			Face *f = *f_it;
+			if(f->bc_code != 0) 
+				os << f->bc_code << " " << f->volume[0]->id << " 2 " << f->face[0] << endl;
+		}
+		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
+			Line *l = *l_it;
+			vector<int> numb, parDir, parStep;
+			(*l->volume.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
+			if(l->bc_code != 0)
+				os << l->bc_code << " " << (*l->volume.begin())->id << " 1 " << numb[0] << endl;
+		}
+		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
+			Vertex *c = *c_it;
+			vector<int> corner_id = (*c->volume.begin())->getVertexEnumeration(c);
+			if(c->bc_code != 0)
+				os << c->bc_code << " " << (*c->volume.begin())->id << " 0 " << corner_id[0] << endl;
+		}
+	} else { // SURFACE model
+		for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
+			Face *f = *f_it;
+			if(f->bc_code != 0) 
+				os << f->bc_code << " " << f->id << " 2 " << f->face[0] << endl;
+		}
+		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
+			Line *l = *l_it;
+			vector<int> numb, parDir, parStep;
+			(*l->face.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
+			if(l->bc_code != 0)
+				os << l->bc_code << " " << (*l->face.begin())->id << " 1 " << numb[0] << endl;
+		}
+		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
+			Vertex *c = *c_it;
+			vector<int> corner_id = (*c->face.begin())->getVertexEnumeration(c);
+			if(c->bc_code != 0)
+				os << c->bc_code << " " << (*c->face.begin())->id << " 0 " << corner_id[0] << endl;
+		}
 	}
 	/************************************************************************************************************/
 

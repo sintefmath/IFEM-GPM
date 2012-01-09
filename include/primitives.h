@@ -122,7 +122,8 @@ class Vertex {
 		int bc_code;               //!< Boundary condition code
 		Vertex() { bc_code = 0; }
 
-		static void             getVertexEnumeration(int line, int &v1, int &v2);
+		static void             getVertexEnumerationOnFace(int line, int &v1, int &v2);
+		static void             getVertexEnumerationOnVolume(int line, int &v1, int &v2);
 		static std::vector<int> getVertexEnumeration(int face);
 };
 
