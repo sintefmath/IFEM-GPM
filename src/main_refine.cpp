@@ -183,11 +183,11 @@ int main(int argc, char **argv) {
 					// if(hrefDir > -1)
 						// for(vector<double>::iterator it=hrefKnot.begin(); it!=hrefKnot.end(); it++)
 							// volumes[i]->insertKnot(hrefDir, *it);
-					if(     prefAmount>0 && (prefDir==-1 || prefDir == 0 ))
+					if(prefAmount>0 && (prefDir==-1 || prefDir == 0 ))
 						volumes[i]->raiseOrder(prefAmount,0,0);
-					else if(prefAmount>0 && (prefDir==-1 || prefDir == 1 ))
+					if(prefAmount>0 && (prefDir==-1 || prefDir == 1 ))
 						volumes[i]->raiseOrder(0,prefAmount, 0);
-					else if(prefAmount>0 && (prefDir==-1 || prefDir == 2 ))
+					if(prefAmount>0 && (prefDir==-1 || prefDir == 2 ))
 						volumes[i]->raiseOrder(0,0,prefAmount);
 				}
 			}
@@ -225,9 +225,9 @@ int main(int argc, char **argv) {
 						for(vector<double>::iterator it=hrefKnot.begin(); it!=hrefKnot.end(); it++)
 							surfaces[i]->insertKnot_v(*it);
 					*/
-					if(     prefAmount>0 && (prefDir == -1 || prefDir == 0 ))
+					if(prefAmount>0 && (prefDir == -1 || prefDir == 0 ))
 						surfaces[i]->raiseOrder(prefAmount,0);
-					else if(prefAmount>0 && (prefDir == -1 || prefDir == 1 ))
+					if(prefAmount>0 && (prefDir == -1 || prefDir == 1 ))
 						surfaces[i]->raiseOrder(0,prefAmount);
 				}
 			}
