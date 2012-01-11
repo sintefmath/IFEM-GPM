@@ -100,7 +100,6 @@ void processParameters(int argc, char** argv) {
 			regularize  = true;
 			glob_refine = true;
 		} else if(strcmp(flag, "-unif") == 0) {
-			cout << "-unif flag\n";
 			int dir   = atoi(argv[++argi]);
 			hrefN     = atoi(argv[++argi]);
 			if(dir==-1) {
@@ -114,8 +113,6 @@ void processParameters(int argc, char** argv) {
 			} else if(dir==2) {
 				uniform_w = true;
 			}
-			cout << "hrefN = " << hrefN << endl;
-			cout << "dir = " << dir << endl;
 				
 		} else if(strcmp(flag, "-help") == 0) {
 			cout << fileUsage << endl;
@@ -169,21 +166,15 @@ int main(int argc, char **argv) {
 			}
 
 			vector<shared_ptr<SplineVolume> > volumes = model.getSplineVolumes();
-			cout << "hrefN = " << hrefN << endl;
 			for(uint i=0; i<volumes.size(); i++) {
 				if(uniform_u || uniform_v || uniform_w) {
 					vector<double> uniqueKnots;
 					for(int dir=0; dir<3; dir++) {
 						uniqueKnots.clear();
 						volumes[i]->basis(dir).knotsSimple(uniqueKnots);
-						cout << "Patch #" << i << ", dir=" << dir << endl;
-						for(uint j=0; j<uniqueKnots.size()-1; j++) {
-							cout << "  Knot span (" << uniqueKnots[j] << ", " << uniqueKnots[j+1] << ")\n";
-							for(int k=0; k<hrefN; k++) {
-								cout << "    inserted knot : " << uniqueKnots[j]*(k+1)/(hrefN+1) + uniqueKnots[j+1]*(hrefN-k)/(hrefN+1) << endl;
+						for(uint j=0; j<uniqueKnots.size()-1; j++)
+							for(int k=0; k<hrefN; k++)
 								volumes[i]->insertKnot(dir, uniqueKnots[j]*(k+1)/(hrefN+1) + uniqueKnots[j+1]*(hrefN-k)/(hrefN+1));
-							}
-						}
 					}
 				} else if(regularize) {
 					cerr << "Regularization not implemented yet. Come back later\n";
