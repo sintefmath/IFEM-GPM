@@ -156,12 +156,12 @@ void Face::getEdgeEnumeration(Line *l, vector<int> &numb, vector<int> &parDir, v
 	parDir.clear();
 	parStep.clear();
 	int lineCount = 0;
-	for(int p=0; p<2; p++) { // parametric direction
+	for(int p=2; p-->0; ) { // parametric direction
 		for(int u1=0; u1<2; u1++) {
 			if(l == line[lineCount]) {
 				int v_start = -1; // index of line starting vertex
-				if(p==0)      v_start  =      2*u1;
-				else if(p==1) v_start  = u1       ;
+				if(p==0)      v_start  = 2*u1;
+				else if(p==1) v_start  =   u1;
 
 				// is the line oriented the same way globaly as localy?
 				if(l->v1 == corner[v_start])

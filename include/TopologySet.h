@@ -36,6 +36,8 @@ class TopologySet {
 		int numbNonDegenFaces() const;
 		int numbVolumes() const;
 
+		void setTolerance(double tol);
+
 		Volume* getVolume(int id);
 		Face* getFace(int id);
 		

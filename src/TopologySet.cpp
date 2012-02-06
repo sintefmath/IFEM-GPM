@@ -66,6 +66,16 @@ TopologySet::~TopologySet() {
 }
 
 /**********************************************************************************//**
+ * \brief sets neighbouring tolerance
+ * \param tol absolute tolerance given in euclidean distance measured for each controlpoint
+ *
+ *************************************************************************************/
+ void TopologySet::setTolerance(double tol) {
+ 	this->tol = tol;
+	buildTopology();
+}
+
+/**********************************************************************************//**
  * \brief adds another patch to the model
  * \param surf surface patch to be added to the total model
  *
@@ -276,10 +286,10 @@ void TopologySet::buildTopology() {
 			}
 
 			// add all lines to the right places
-			int step = 1;
+			int step = n1;
 			int lineCount = 0;
-			for(int parDir=0; parDir<2; parDir++) {
-				if(parDir==1)      step *= n1;
+			for(int parDir=2; parDir-->0; ) {
+				if(parDir==0)      step /= n1;
 				for(int u1=0; u1<2; u1++) {
 					Line *line = new Line();
 					int start = 0;

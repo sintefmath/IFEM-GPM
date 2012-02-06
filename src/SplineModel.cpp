@@ -62,6 +62,10 @@ SplineModel::~SplineModel() {
 	delete[] sl2g;
 }
 
+void SplineModel::setTopologyTolerance(double tol) {
+	topology->setTolerance(tol);
+}
+
 //! \brief Checks to see if the model is built up from trivariate volume splines
 bool SplineModel::isVolumetricModel() const {
 	return volumetric_model;
@@ -327,6 +331,8 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 	} else {
 		Line *l;
 		set<Face*>::iterator it;
+		// create a list over how each patch should be refined. minorRefine[0] means refine % is given from u_min to u_max,
+		// while majorRefine[0] means percentage from u_max to u_min. Likewise with [1] for the v-parametric direction
 		vector<bool> minorRefine[2];
 		vector<bool> majorRefine[2];
 		minorRefine[0].insert(minorRefine[0].begin(), topology->numbFaces(), false);
@@ -337,7 +343,7 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 		int otherSide[] = {1,0,  3,2}; // given face index i, the other side is index otherSide[i]
 		double knotStart = (parDir==0) ? spline_surfaces_[patchId]->startparam_u() : spline_surfaces_[patchId]->startparam_v();
 		double knotEnd   = (parDir==0) ? spline_surfaces_[patchId]->endparam_u()   : spline_surfaces_[patchId]->endparam_v();
-		double knotRel   = (knot - knotStart) / (knotEnd - knotStart);
+		double knotRel   = (knot - knotStart) / (knotEnd - knotStart); // knotRel is the actual % from the edge which is going to be refined
 		Face *f = topology->getFace(patchId);
 		minorRefine[parDir][f->id] = true;
 
@@ -345,10 +351,10 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 		stack<bool> minor;
 		stack<int> edgeIn;
 
-		l = f->line[parDir*2];
+		// pick either the bottom or left line to figure out local orientation (store in "rightWay")
+		l = f->line[2-parDir*2]; 
 		vector<int> numb, runningParDir, parStep;
-		if(! l->degen) {
-			// l is degenerate or has one or two corresponding faces
+		if(! l->degen) { // l will always be degenerate or has one or two corresponding faces 
 			bool rightWay, sameWay;
 			for(it=l->face.begin(); it!=l->face.end(); it++) {
 				(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep);
@@ -358,7 +364,7 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 			for(it=l->face.begin(); it!=l->face.end(); it++) {
 				if(*it == f)
 					continue;
-				(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep);
+				(*it)->getEdgeEnumeration(l, numb, runningParDir, parStep); // vectors returned will always be of size 1
 				int refParDir = runningParDir[0];
 				sameWay = rightWay == (parStep[0]==1);
 				if(sameWay) {
@@ -379,9 +385,10 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 			}
 		}
 
+		// the loop above creates search recursion down/left, while these 3 lines create up/right
 		faceStack.push(f);
 		minor.push(true);
-		edgeIn.push(parDir*2);
+		edgeIn.push(2-parDir*2);
 
 		while(!faceStack.empty()) {
 			f = faceStack.top();

@@ -23,6 +23,7 @@ using namespace Go;
 
 bool   verbose         = false;
 bool   legacy          = false;
+double tol             = -1;
 string fileUsage       = "\
 File usage: gpm [-v] <inputFile> \n\
   \n\
@@ -30,6 +31,7 @@ File usage: gpm [-v] <inputFile> \n\
     <inputFile> : one or more .g2-files describing the spline volumes \n\
   FLAGS\n\
     -v          : verbose output  \n\
+    -TOL        : topology tolerance  \n\
     -legacy     : old enumeration scheme  \n\
     -help       : display this help screen";
 SplineModel model;
@@ -40,6 +42,8 @@ void processParameters(int argc, char** argv) {
 		const char *arg = argv[argi];
 		if(strcmp(arg, "-v") == 0) {
 			verbose = true;
+		} else if(strcmp(arg, "-TOL") == 0) {
+			tol = atof(argv[++argi]);
 		} else if(strcmp(arg, "-help") == 0) {
 			cout << fileUsage << endl;
 			exit(0);
@@ -104,6 +108,8 @@ int main(int argc, char **argv) {
 		model.writeSplines(outFile);
 		outFile.close();
 	}
+	if(tol > 0)
+		model.setTopologyTolerance(tol);
 
 
 	if(verbose) {
