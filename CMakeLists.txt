@@ -65,6 +65,10 @@ FILE(GLOB_RECURSE refine_SRCS ${PROJECT_SOURCE_DIR}/src/main_refine.cpp)
 ADD_EXECUTABLE(refine ${refine_SRCS})
 TARGET_LINK_LIBRARIES(refine GPM ${DEPLIBS})
 
+FILE(GLOB_RECURSE enforceRHS_SRCS ${PROJECT_SOURCE_DIR}/src/main_enforceRHS.cpp)
+ADD_EXECUTABLE(enforceRHS ${enforceRHS_SRCS})
+TARGET_LINK_LIBRARIES(enforceRHS GPM ${DEPLIBS})
+
 FILE(GLOB_RECURSE orderElevation_SRCS ${PROJECT_SOURCE_DIR}/src/main_orderElevation.cpp)
 ADD_EXECUTABLE(orderElevation ${orderElevation_SRCS})
 TARGET_LINK_LIBRARIES(orderElevation ${DEPLIBS})

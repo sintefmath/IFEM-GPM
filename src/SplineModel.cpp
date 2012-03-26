@@ -119,7 +119,7 @@ bool SplineModel::enforceRightHandSystem() {
 			double jacobian = normal[2];
 			if(jacobian < 0) {
 				anything_switched = true;
-				spline_surfaces_[i]->reverseParameterDirection(true);
+				spline_surfaces_[i]->reverseParameterDirection(false);
 			}
 		}
 	}
@@ -1196,7 +1196,7 @@ void SplineModel::writeSplines(std::ostream &os) const {
 	}
 }
 
-void SplineModel::readSplines(std::istream &is) {
+void SplineModel::readSplines(std::istream &is, bool buildTopology) {
 	Go::ObjectHeader head;
 	while(!is.eof()) {
 		head.read(is);
@@ -1218,7 +1218,8 @@ void SplineModel::readSplines(std::istream &is) {
 		}
 		ws(is); // eats up as many whitespaces as it can
 	}
-	topology->buildTopology();
+	if(buildTopology)
+		topology->buildTopology();
 }
 
 void SplineModel::readModelProperties(std::istream &is) {

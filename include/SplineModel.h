@@ -90,7 +90,7 @@ class SplineModel {
 		void writeSplines(std::ostream &os) const;
 		void writeGlobalNumberOrdering(std::ostream &os) const;
 		void writeModelProperties(std::ostream &os) const;
-		void readSplines(std::istream &is);
+		void readSplines(std::istream &is, bool buildTopology=true);
 		void readGlobalNumberOrdering(std::istream &is);
 		void readModelProperties(std::istream &is);
 
