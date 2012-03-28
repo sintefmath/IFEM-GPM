@@ -301,33 +301,162 @@ int SplineModel::getVertexPropertyCode(int patchId, int vertId) {
  *************************************************************************************/
 void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 	if(volumetric_model) {
-		cerr << "Refinement for volumes is not yet implemented\n";
-		exit(142990);
-	/*
-		vector<bool> patchIds(topology->numbVolumes(), false);
 
-		vector<bool> minParDirU(topology->numbVolumes(), false);
-		vector<bool> minParDirV(topology->numbVolumes(), false);
-		vector<bool> minParDirW(topology->numbVolumes(), false);
-		vector<bool> maxParDirU(topology->numbVolumes(), false);
-		vector<bool> maxParDirV(topology->numbVolumes(), false);
-		vector<bool> maxParDirW(topology->numbVolumes(), false);
+		vector<bool> patchIds(topology->numbVolumes(),   false);
 
-		vector<int>  parameterDirection(topology->numbVolumes(), -1);
-		vector<bool> swapDir(topology->numbVolumes(), false);
-		int otherSide[] = {1,0,  3,2,  5,4}; // given face index i, the other side is index otherSide[i]
+		vector<bool> minorRefine[3];
+		vector<bool> majorRefine[3];
+		minorRefine[0].insert(minorRefine[0].begin(), topology->numbFaces(), false);
+		minorRefine[1].insert(minorRefine[1].begin(), topology->numbFaces(), false);
+		minorRefine[2].insert(minorRefine[2].begin(), topology->numbFaces(), false);
+		majorRefine[0].insert(majorRefine[0].begin(), topology->numbFaces(), false);
+		majorRefine[1].insert(majorRefine[1].begin(), topology->numbFaces(), false);
+		majorRefine[2].insert(majorRefine[2].begin(), topology->numbFaces(), false);
+
+		// Note: "minor" in uv-,uw- and vw-pairs refers to the first parametric direction (i.e. u,u and v respectively)
+
+		int otherSide1[6]    =   {1,0,  3,2,  5,4};   // given face index i, the opposing output face is index otherSide[i]
+		int otherSide2[2][6] = { {2,2,  0,0,  0,0},   // the first side face, given input face and running minor parameter direction
+		                         {4,4,  4,4,  2,2} }; // the first side face, given running direction as "major parameter"
+		int otherSide3[2][6] = { {3,3,  1,1,  1,1},   // second side face, when running parameter is "minor" (refining parameter = "major")
+		                         {5,5,  5,5,  3,3} }; // second side face, when running parameter is "major" (refining parameter = "minor")
+		int refDir[2][6]     = { {2,2,  2,2,  1,1},   // given input face and running parameter, what parametric
+		                         {1,1,  0,0,  0,0} }; // direction should be refined
 
 		double knotStart = spline_volumes_[patchId]->startparam(parDir);
 		double knotEnd   = spline_volumes_[patchId]->endparam(parDir);
-		newKnotRatio     = (knot - knotStart) / (knotEnd - knotStart);
-
-		stack<Volume*> volStack ;
+		double knotRel   = (knot - knotStart) / (knotEnd - knotStart); // knotRel is the actual % from the edge which is going to be refined
 		Volume *vol = topology->getVolume(patchId);
-		Face   *f   = vol->face[parDir*2];
-		vector<Volume*> neighb =  f->volume;
-		for(uint i=0; i<neighb.size(); i++) {
+
+		stack<Volume*> volStack;
+		stack<bool> minor;            // in v-refining, true if % is evaluated from vmin (false if % is evaluated from vmax)
+		stack<bool> refiningMinor;    // in vw-face, true if refining direction is minor (i.e. v)
+		stack<int> faceIn;
+		Volume     *v;
+		
+
+		// start by pushing one face in, and all the rest will follow
+		volStack.push(vol);
+		minor.push(parDir != 0);
+		refiningMinor.push(true);
+		faceIn.push((parDir*2+3)%6);
+
+		while(!volStack.empty()) {
+			Volume *v       = volStack.top();
+			int    fIn      = faceIn.top();
+			bool   isMinor  = minor.top();
+			bool   refMinor = refiningMinor.top();
+			volStack.pop();
+			faceIn.pop();
+			minor.pop();
+			refiningMinor.pop();
+
+			// tag acutal refinement
+			int parametricRefine = refDir[!isMinor][fIn];
+			if(refMinor) {
+				if(minorRefine[parametricRefine][v->id])
+					continue; // already done with this one, keep going, no propagation
+				minorRefine[parametricRefine][v->id] = true;
+			} else {
+				if(majorRefine[parametricRefine][v->id])
+					continue; // already done with this one, keep going, no propagation
+				majorRefine[parametricRefine][v->id] = true;
+			}
+
+			// propegate to 3 edge faces
+			int faceOut[4] = {otherSide1[fIn],
+			                  otherSide2[!isMinor][fIn],
+			                  otherSide3[!isMinor][fIn],
+							  fIn}; // <-- this last guy is only used for the FIRST volume to ensure 
+							        //     propegation in both directions
+			for(int i=0; i<4; i++) {
+				Face *f = v->face[faceOut[i]];
+				// face degenerate to point does not propegate refinement
+				// note however that faces degenerating to lines DO cause propegation
+				if(f->degen1 && f->degen2)
+					continue;
+				vector<Volume*>::iterator it;
+				bool thisFlipUV   = false;
+				bool thisReverseU = false;
+				bool thisReverseV = false;
+
+				// uv-flip and reversing is wrt volume[0] which may not be equal to *v
+				int j=0;
+				for(it=f->volume.begin(); it!=f->volume.end(); it++, j++) {
+					if(*it == v) {
+						thisFlipUV   = f->uv_flip[j];
+						thisReverseU = f->u_reverse[j];
+						thisReverseV = f->v_reverse[j];
+					}
+				}
+
+				if( (f->degen1 && !thisFlipUV && !isMinor) ||
+				    (f->degen1 &&  thisFlipUV &&  isMinor))
+					continue;
+				if( (f->degen2 && !thisFlipUV &&  isMinor) ||
+				    (f->degen2 &&  thisFlipUV && !isMinor))
+					continue;
+
+				// for all neighbouring volumes to this (possible degenerate) face
+				j=0;
+				for(it=f->volume.begin(); it!=f->volume.end(); it++, j++) {
+					if(*it == v && f->id == fIn)
+						continue;
+
+					// add neighbouring volume to stack
+					volStack.push(*it);
+
+					bool uv_flip   = (f->uv_flip[j]   != thisFlipUV);
+					bool u_reverse = (f->u_reverse[j] != thisReverseU);
+					bool v_reverse = (f->v_reverse[j] != thisReverseV);
+					// is "running index" the minor one?
+					bool thisMinor = (parametricRefine == 1 && faceOut[i]>3) ||
+					                 (parametricRefine == 2 );
+					minor.push( thisMinor != uv_flip );
+
+					// on the neighbouting volume, should we refine major?
+					bool nextRefMinor = !thisMinor;
+					nextRefMinor = ( !thisFlipUV &&  nextRefMinor && ! uv_flip && !u_reverse ) ||
+					               ( !thisFlipUV &&  nextRefMinor &&   uv_flip && !v_reverse ) ||
+								   ( !thisFlipUV && !nextRefMinor && ! uv_flip && !v_reverse ) ||
+								   ( !thisFlipUV && !nextRefMinor &&   uv_flip && !u_reverse ) ||
+								   (  thisFlipUV &&  nextRefMinor && ! uv_flip && !v_reverse ) ||
+								   (  thisFlipUV &&  nextRefMinor &&   uv_flip && !u_reverse ) ||
+								   (  thisFlipUV && !nextRefMinor && ! uv_flip && !u_reverse ) ||
+								   (  thisFlipUV && !nextRefMinor &&   uv_flip && !v_reverse ) ;
+					nextRefMinor = (nextRefMinor == refMinor);
+					refiningMinor.push(nextRefMinor);
+					
+					// get local face enumeration on the neighbouring volume
+					vector<int> nextFaceIn = (*it)->getSurfaceEnumeration(f);
+					faceIn.push(nextFaceIn[0]);
+
+				}
+			}
+		} // end volStack loop
+
+		// perform knot insetion 
+		for(uint i=0; i<spline_volumes_.size(); i++) {
+			double start_u = spline_volumes_[i]->startparam(0);
+			double stop_u  = spline_volumes_[i]->endparam(0);
+			double start_v = spline_volumes_[i]->startparam(1);
+			double stop_v  = spline_volumes_[i]->endparam(1);
+			double start_w = spline_volumes_[i]->startparam(2);
+			double stop_w  = spline_volumes_[i]->endparam(2);
+			if(minorRefine[0][i])
+				spline_volumes_[i]->insertKnot(0, (1-knotRel)*start_u + knotRel*stop_u);
+			if(minorRefine[1][i])
+				spline_volumes_[i]->insertKnot(1, (1-knotRel)*start_v + knotRel*stop_v);
+			if(minorRefine[2][i])
+				spline_volumes_[i]->insertKnot(2, (1-knotRel)*start_w + knotRel*stop_w);
+			if(majorRefine[0][i])
+				spline_volumes_[i]->insertKnot(0, knotRel*start_u + (1-knotRel)*stop_u);
+			if(majorRefine[1][i])
+				spline_volumes_[i]->insertKnot(1, knotRel*start_v + (1-knotRel)*stop_v);
+			if(majorRefine[2][i])
+				spline_volumes_[i]->insertKnot(2, knotRel*start_w + (1-knotRel)*stop_w);
 		}
-	*/
+
 	} else {
 		Line *l;
 		set<Face*>::iterator it;
@@ -465,32 +594,33 @@ void SplineModel::knot_insert(int patchId, int parDir, double knot) {
 void SplineModel::boundary_layer_refinement(int patchId, int parDir, bool start, double scale, int n) {
 	if(n<1)
 		return;
+
+	vector<double> simpleKnots;
+
 	if(volumetric_model) {
-		cerr << "Refinement for volumes is not yet implemented\n";
-		exit(142983);
+		spline_volumes_[patchId]->basis(parDir).knotsSimple(simpleKnots);
 	} else {
-		vector<double> simpleKnots;
 		if(parDir==0)
 			spline_surfaces_[patchId]->basis_u().knotsSimple(simpleKnots);
 		else
 			spline_surfaces_[patchId]->basis_v().knotsSimple(simpleKnots);
-		double pow = 1;
-		double sum = 0;
-		for(int i=0; i<=n; i++) {
-			sum += pow;
-			pow *= scale;
-		}
-		double minor   = (start) ? simpleKnots[1] : simpleKnots[simpleKnots.size()-2];
-		double major   = (start) ? simpleKnots[0] : simpleKnots[simpleKnots.size()-1];
-		double alpha   = 1.0/sum;
-		sum = 0;
-		pow = 1;
-		for(int i=0; i<n; i++) {
-			sum += alpha*pow;
-			pow *= scale;
-			double newKnot = sum*major + (1-sum)*minor;
-			knot_insert(patchId, parDir, newKnot);
-		}
+	}
+	double pow = 1;
+	double sum = 0;
+	for(int i=0; i<=n; i++) {
+		sum += pow;
+		pow *= scale;
+	}
+	double minor   = (start) ? simpleKnots[1] : simpleKnots[simpleKnots.size()-2];
+	double major   = (start) ? simpleKnots[0] : simpleKnots[simpleKnots.size()-1];
+	double alpha   = 1.0/sum;
+	sum = 0;
+	pow = 1;
+	for(int i=0; i<n; i++) {
+		sum += alpha*pow;
+		pow *= scale;
+		double newKnot = sum*major + (1-sum)*minor;
+		knot_insert(patchId, parDir, newKnot);
 	}
 }
 

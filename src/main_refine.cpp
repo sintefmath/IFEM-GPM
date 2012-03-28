@@ -151,6 +151,7 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 	if(model.isVolumetricModel()) {
+		vector<shared_ptr<SplineVolume> > volumes = model.getSplineVolumes();
 		if(eff_patch == -1) {
 			if(prefDir != -1) {// specified global uniform reffinement in one parametric direction
 				cerr << "WARNING: global order elevation in one direction is not guaranteed to give a consistent model back, due to potential local orientations.";
@@ -165,7 +166,6 @@ int main(int argc, char **argv) {
 				}
 			}
 
-			vector<shared_ptr<SplineVolume> > volumes = model.getSplineVolumes();
 			for(uint i=0; i<volumes.size(); i++) {
 				if(uniform_u || uniform_v || uniform_w) {
 					vector<double> uniqueKnots;
@@ -192,8 +192,34 @@ int main(int argc, char **argv) {
 				}
 			}
 		} else {
-			cerr << "Volumetric local refinement (nonuniform) needs some love. Avoid using it for the moment\n";
-			exit(1154152);
+			if(hrefDir > -1) {
+				model.knot_insert(eff_patch, hrefDir, hrefKnot[0]);
+			}
+			if(edge > -1) {
+				model.boundary_layer_refinement(eff_patch, edge/2, 1-edge%2, r, nBoundary);
+			}
+			if(uniform_u) {
+				vector<double> uniqueKnots_u;
+				volumes[eff_patch]->basis(0).knotsSimple(uniqueKnots_u);
+				for(uint j=0; j<uniqueKnots_u.size()-1; j++)
+					for(int k=0; k<hrefN; k++)
+						model.knot_insert(eff_patch, 0, uniqueKnots_u[j]*(k+1)/(hrefN+1) + uniqueKnots_u[j+1]*(hrefN-k)/(hrefN+1));
+							
+			}
+			if(uniform_v) {
+				vector<double> uniqueKnots_v;
+				volumes[eff_patch]->basis(1).knotsSimple(uniqueKnots_v);
+				for(uint j=0; j<uniqueKnots_v.size()-1; j++)
+					for(int k=0; k<hrefN; k++)
+						model.knot_insert(eff_patch, 1, uniqueKnots_v[j]*(k+1)/(hrefN+1) + uniqueKnots_v[j+1]*(hrefN-k)/(hrefN+1));
+			}
+			if(uniform_w) {
+				vector<double> uniqueKnots_w;
+				volumes[eff_patch]->basis(2).knotsSimple(uniqueKnots_w);
+				for(uint j=0; j<uniqueKnots_w.size()-1; j++)
+					for(int k=0; k<hrefN; k++)
+						model.knot_insert(eff_patch, 2, uniqueKnots_w[j]*(k+1)/(hrefN+1) + uniqueKnots_w[j+1]*(hrefN-k)/(hrefN+1));
+			}
 		}
 	} else {
 		vector<shared_ptr<SplineSurface> > surfaces = model.getSplineSurfaces();
