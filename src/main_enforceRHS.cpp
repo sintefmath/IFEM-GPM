@@ -22,7 +22,7 @@ using namespace std;
 using namespace Go;
 
 bool storeFile         = false;
-const char *outputFile       = new char[1024];
+const char *outputFile = new char[1024];
 string fileUsage       = "\
 File usage: enforceRHS [-out=<outfile>] <inputFile> \n\
   \n\
