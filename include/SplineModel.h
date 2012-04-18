@@ -76,14 +76,14 @@ class SplineModel {
 		void uniform_p_refine();
 		
 		// model property functions
-		bool addVolumePropertyCode(int volId, int propCode, bool inclusive=false);
-		bool addFacePropertyCode(int volId, int faceId, int propCode, bool inclusive=true);
-		bool addLinePropertyCode(int volId, int lineId, int propCode, bool inclusive=true);
-		void addVertexPropertyCode(int volId, int vertId, int propCode);
-		int getVolumePropertyCode(int volId);
-		int getFacePropertyCode(int volId, int faceId);
-		int getLinePropertyCode(int volId, int lineId);
-		int getVertexPropertyCode(int volId, int vertId);
+		bool addVolumePropertyCode(int volId,             const char* propCode, bool inclusive=false);
+		bool addFacePropertyCode(int volId, int faceId,   const char* propCode, bool inclusive=true);
+		bool addLinePropertyCode(int volId, int lineId,   const char* propCode, bool inclusive=true);
+		void addVertexPropertyCode(int volId, int vertId, const char* propCode);
+		const char* getVolumePropertyCode(int volId);
+		const char* getFacePropertyCode(  int volId, int faceId);
+		const char* getLinePropertyCode(  int volId, int lineId);
+		const char* getVertexPropertyCode(int volId, int vertId);
 		bool isVolumetricModel() const;
 		
 		// input-/output-functions

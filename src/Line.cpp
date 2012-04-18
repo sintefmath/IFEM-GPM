@@ -17,7 +17,7 @@ using namespace Go;
 Line::Line() {
 	v1      = NULL;
 	v2      = NULL;
-	bc_code = 0;
+	bc_code = NULL;
 }
 
 Line::~Line() {

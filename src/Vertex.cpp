@@ -2,6 +2,10 @@
 
 using namespace std;
 
+Vertex::Vertex() {
+	bc_code = NULL;
+}
+
 void Vertex::getVertexEnumerationOnFace(int line, int &v1, int &v2) {
 	if(line == 0) {
 		v1 = 0;

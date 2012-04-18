@@ -34,17 +34,18 @@ class Volume {
 		Line   *line[12];
 		Face   *face[6];
 		int    id;
-		int    material_code; //!< Material properties
+		const char* material_code; //!< Material properties
 };
 
 /**********************************************************************************//**
  * \brief Class describing topological face primitives
  *
  * A face is is defined by its internal controlpoints, which are also used for checking
- * uniqueness. Once two faces are found equal, the form a twin-pair with access to both
- * parent volumes. There are eight different ways that these faces can be oriented with
- * respect to each other, and these are stored in the boolean variables uv_flip, u_reverse
- * and v_reverse.
+ * uniqueness. Once two (or more) faces are found equal, the form a twin-pair with access 
+ * to both parent volumes. There are eight different ways that these faces can be oriented 
+ * with respect to each other, and these are stored in the boolean variables uv_flip, 
+ * u_reverse and v_reverse. Note that in the case of degenerate surfaces, it is possible
+ * to neighbour an arbitrary number of volumes.
  *
  *************************************************************************************/
 class Face : public Go::Streamable {
@@ -61,13 +62,6 @@ class Face : public Go::Streamable {
 		std::vector<std::vector<Go::Point> > cp; //!< Defining control points
 		Vertex *corner[4];           //!< The four corners (only used in surface models)
 		Line   *line[4];             //!< The four edges (only used in surface models)
-		// Volume *v1;               //!< First neighbouring volume
-		// Volume *v2;               //!< Second neighbouring volume (or null in the case of edge face)
-		// int    face1;             //!< face index on volume 1
-		// int    face2;             //!< face index on volume 2
-		// bool   uv_flip;           //!< is the first/second parameter direction swapped on the twin face
-		// bool   u_reverse;         //!< is the first parameter direction reversed
-		// bool   v_reverse;         //!< is the second parameter direction reversed
 		std::vector<Volume*> volume;     //!< Neighbouring volumes
 		std::vector<int >    face;       //!< face index on volume 1 (volumetric models only)
 		std::vector<bool>    uv_flip;    //!< is the first/second parameter direction swapped wrt the first volume (volumetric models only)
@@ -78,7 +72,7 @@ class Face : public Go::Streamable {
 		bool   degen2;            //!< is the second parameter direction degenerated
 
 		int    id;
-		int    bc_code;           //!< Boundary condition code
+		const char* bc_code;      //!< Boundary condition code
 };
 
 /**********************************************************************************//**
@@ -103,7 +97,7 @@ class Line : public Go::Streamable {
 		std::set<Face*> face;      //!< Neighbouring faces
 		Vertex *v1;                //!< Start or stop vertex.
 		Vertex *v2;                //!< Start or stop vertex.
-		int bc_code;               //!< Boundary condition code
+		const char* bc_code;       //!< Boundary condition code
 		bool degen;                //!< Is the line degenerated to a point
 };
 
@@ -119,9 +113,9 @@ class Vertex {
 		Go::Point cp;              //!< Defining control point
 		std::set<Volume*> volume;  //!< Neighbouring volumes
 		std::set<Face*> face;      //!< Neighbouring face
-		int bc_code;               //!< Boundary condition code
-		Vertex() { bc_code = 0; }
+		const char* bc_code;       //!< Boundary condition code
 
+		Vertex();
 		static void             getVertexEnumerationOnFace(int line, int &v1, int &v2);
 		static void             getVertexEnumerationOnVolume(int line, int &v1, int &v2);
 		static std::vector<int> getVertexEnumeration(int face);

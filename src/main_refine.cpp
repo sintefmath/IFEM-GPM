@@ -30,6 +30,7 @@ int    edge               = -1;
 double r                  = -1;
 double nBoundary          = -1;
 vector<double> hrefKnot   ;
+double tol                = -1;
 bool   uniform_u          = false;
 bool   uniform_v          = false;
 bool   uniform_w          = false;
@@ -45,9 +46,10 @@ File usage: refine [-href <dir> <knot>] [-pref <dir> <n>] [-patch <index>] \n\
     <inputFile> : one or more .g2-files describing the spline volumes \n\
   FLAGS\n\
     -help                : display file usage (this screen) \n\
+    -TOL                 : topology tolerance  \n\
   GLOBAL REFINEMENT FLAGS\n\
     -unif <dir> <n>      : uniform refinement (h-refinement) in the <dir> parametric\n\
-	                       direction (-1 for all). Inserts <n> knots in each knot span\n\
+                           direction (-1 for all). Inserts <n> knots in each knot span\n\
     -regul               : regularize biased patches by ensuring that no element \n\
                            is larger than twice the size of the smallest element \n\
                            as well as making all patches of equal degree (highest) \n\
@@ -55,10 +57,10 @@ File usage: refine [-href <dir> <knot>] [-pref <dir> <n>] [-patch <index>] \n\
     -patch <index>       : apply refinement only to the patch <index> \n\
     -href <dir> <knot>   : insert <knot(s)> into the <dir> parametric knot vector  \n\
     -pref <dir> <n>      : raise the order in parametric direction <dir> (-1 for all\n\
-	                       parameteric directions) by <n> polynomial degrees \n\
+                           parameteric directions) by <n> polynomial degrees \n\
     -bndry <edge> <r> <n>: resolve boundary layer by splitting the elements nearest \n\
                            local edge number <edge> in <n> new knot lines an aspect \n\
-						   ratio of <r>. With <r> being between 0 and 1\n";
+                           ratio of <r>. With <r> being between 0 and 1\n";
 	/*
     -u <knot>    : insert <knot> into the first parametric knot vector  \n\
     -v <knot>    : insert <knot> into the second parametric knot vector  \n\
@@ -114,6 +116,8 @@ void processParameters(int argc, char** argv) {
 				uniform_w = true;
 			}
 				
+		} else if(strcmp(flag, "-TOL") == 0) {
+			tol = atof(argv[++argi]);
 		} else if(strcmp(flag, "-help") == 0) {
 			cout << fileUsage << endl;
 			exit(0);
@@ -141,6 +145,9 @@ void processParameters(int argc, char** argv) {
 
 int main(int argc, char **argv) {
 	processParameters(argc, argv);
+
+	if(tol > 0)
+		model.setTopologyTolerance(tol);
 	
 	if(glob_refine && local_refine) {
 		cerr << "Can't both perform local and global refinements\n";

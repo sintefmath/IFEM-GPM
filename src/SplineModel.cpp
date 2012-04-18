@@ -138,7 +138,7 @@ bool SplineModel::enforceRightHandSystem() {
  *          different code and has now been overwritten (only applicable if
  *          inclusive=true)
  *************************************************************************************/
-bool SplineModel::addVolumePropertyCode(int volId, int propCode, bool inclusive) {
+bool SplineModel::addVolumePropertyCode(int volId, const char* propCode, bool inclusive) {
 	Volume* v = topology->getVolume(volId);
 	v->material_code = propCode;
 	if(inclusive) {
@@ -173,7 +173,7 @@ bool SplineModel::addVolumePropertyCode(int volId, int propCode, bool inclusive)
  * \returns true if any corners or lines had previously been tagged with a different 
  *          code and has now been overwritten (only applicable if inclusive=true)
  *************************************************************************************/
-bool SplineModel::addFacePropertyCode(int patchId, int faceId, int propCode, bool inclusive) {
+bool SplineModel::addFacePropertyCode(int patchId, int faceId, const char* propCode, bool inclusive) {
 	Face* f;
 	if(volumetric_model) {
 		Volume* v = topology->getVolume(patchId);
@@ -211,7 +211,7 @@ bool SplineModel::addFacePropertyCode(int patchId, int faceId, int propCode, boo
  * \returns true if any corners had previously been tagged with a different code and has 
  *          now been overwritten (only applicable if inclusive=true)
  *************************************************************************************/
-bool SplineModel::addLinePropertyCode(int patchId, int lineId, int propCode, bool inclusive) {
+bool SplineModel::addLinePropertyCode(int patchId, int lineId, const char* propCode, bool inclusive) {
 	Line* l;
 	if(volumetric_model) {
 		Volume* v = topology->getVolume(patchId);
@@ -239,7 +239,7 @@ bool SplineModel::addLinePropertyCode(int patchId, int lineId, int propCode, boo
  *                  the class Volume (volumeModel: values 0-7, surfaceModel: 0-3)
  * \param propCode  property code
  *************************************************************************************/
-void SplineModel::addVertexPropertyCode(int patchId, int vertId, int propCode) {
+void SplineModel::addVertexPropertyCode(int patchId, int vertId, const char* propCode) {
 	if(volumetric_model) {
 		Volume* v = topology->getVolume(patchId);
 		v->corner[vertId]->bc_code = propCode;
@@ -249,16 +249,16 @@ void SplineModel::addVertexPropertyCode(int patchId, int vertId, int propCode) {
 	}
 }
 
-int SplineModel::getVolumePropertyCode(int patchId) {
+const char* SplineModel::getVolumePropertyCode(int patchId) {
 	if(volumetric_model) {
 		Volume* v = topology->getVolume(patchId);
 		return v->material_code;
 	} else {
-		return -1;
+		return "";
 	}
 }
 
-int SplineModel::getFacePropertyCode(int patchId, int faceId) {
+const char* SplineModel::getFacePropertyCode(int patchId, int faceId) {
 	if(volumetric_model) {
 		Volume* v = topology->getVolume(patchId);
 		return v->face[faceId]->bc_code;
@@ -268,7 +268,7 @@ int SplineModel::getFacePropertyCode(int patchId, int faceId) {
 	}
 }
 
-int SplineModel::getLinePropertyCode(int patchId, int lineId) {
+const char* SplineModel::getLinePropertyCode(int patchId, int lineId) {
 	if(volumetric_model) {
 		Volume* v = topology->getVolume(patchId);
 		return v->line[lineId]->bc_code;
@@ -278,7 +278,7 @@ int SplineModel::getLinePropertyCode(int patchId, int lineId) {
 	}
 }
 
-int SplineModel::getVertexPropertyCode(int patchId, int vertId) {
+const char* SplineModel::getVertexPropertyCode(int patchId, int vertId) {
 	if(volumetric_model) {
 	Volume* v = topology->getVolume(patchId);
 	return v->corner[vertId]->bc_code;
@@ -1221,45 +1221,45 @@ void SplineModel::writeModelProperties(std::ostream &os) const {
 	if(volumetric_model) {
 		for(v_it=topology->volume_begin(); v_it != topology->volume_end(); v_it++) {
 			Volume* v = *v_it;
-			if(v->material_code != 0)
-				os << v->material_code << " " << v->id << " 3 " << endl;
+			if(v->material_code != NULL)
+				os << v->material_code << "\n" << v->id << " 3 " << endl;
 		}
 		for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
 			Face *f = *f_it;
-			if(f->bc_code != 0) 
-				os << f->bc_code << " " << f->volume[0]->id << " 2 " << f->face[0] << endl;
+			if(f->bc_code != NULL) 
+				os << f->bc_code << "\n" << f->volume[0]->id << " 2 " << f->face[0] << endl;
 		}
 		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
 			Line *l = *l_it;
 			vector<int> numb, parDir, parStep;
 			(*l->volume.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
-			if(l->bc_code != 0)
-				os << l->bc_code << " " << (*l->volume.begin())->id << " 1 " << numb[0] << endl;
+			if(l->bc_code != NULL)
+				os << l->bc_code << "\n" << (*l->volume.begin())->id << " 1 " << numb[0] << endl;
 		}
 		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
 			Vertex *c = *c_it;
 			vector<int> corner_id = (*c->volume.begin())->getVertexEnumeration(c);
-			if(c->bc_code != 0)
-				os << c->bc_code << " " << (*c->volume.begin())->id << " 0 " << corner_id[0] << endl;
+			if(c->bc_code != NULL)
+				os << c->bc_code << "\n" << (*c->volume.begin())->id << " 0 " << corner_id[0] << endl;
 		}
 	} else { // SURFACE model
 		for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
 			Face *f = *f_it;
 			if(f->bc_code != 0) 
-				os << f->bc_code << " " << f->id << " 2 " << f->face[0] << endl;
+				os << f->bc_code << "\n" << f->id << " 2 " << f->face[0] << endl;
 		}
 		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
 			Line *l = *l_it;
 			vector<int> numb, parDir, parStep;
 			(*l->face.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
 			if(l->bc_code != 0)
-				os << l->bc_code << " " << (*l->face.begin())->id << " 1 " << numb[0] << endl;
+				os << l->bc_code << "\n" << (*l->face.begin())->id << " 1 " << numb[0] << endl;
 		}
 		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
 			Vertex *c = *c_it;
 			vector<int> corner_id = (*c->face.begin())->getVertexEnumeration(c);
 			if(c->bc_code != 0)
-				os << c->bc_code << " " << (*c->face.begin())->id << " 0 " << corner_id[0] << endl;
+				os << c->bc_code << "\n" << (*c->face.begin())->id << " 0 " << corner_id[0] << endl;
 		}
 	}
 	/************************************************************************************************************/
@@ -1356,40 +1356,37 @@ void SplineModel::readModelProperties(std::istream &is) {
 	if(!is.good())
 		// some error code 
 		;
-	string str_line, primitive;
-	int volId, locId, code, inclusive;
-	while( getline(is, str_line) ) {
+	string str_line, primitive, code;
+	int volId, locId, inclusive;
+	while( getline(is, code) ) {
+		getline(is, str_line);
 		istringstream ss(str_line);
 		ss >> primitive;
 		if(primitive.compare("Volume") == 0 ||
 		   primitive.compare("volume") == 0 )  {
 			ss >> volId;
-			ss >> code;
 			if( !(ss >> inclusive) )
 				inclusive = 0;
-			addVolumePropertyCode(volId, code, inclusive);
+			addVolumePropertyCode(volId, code.c_str(), inclusive);
 		} else if(primitive.compare("Face") == 0 ||
 		          primitive.compare("face") == 0 )  {
 			ss >> volId;
 			ss >> locId;
-			ss >> code;
 			if( !(ss >> inclusive) )
 				inclusive = 1;
-			addFacePropertyCode(volId, locId, code, inclusive);
+			addFacePropertyCode(volId, locId, code.c_str(), inclusive);
 		} else if(primitive.compare("Line") == 0 ||
 		          primitive.compare("line") == 0 )  {
 			ss >> volId;
 			ss >> locId;
-			ss >> code;
 			if( !(ss >> inclusive) )
 				inclusive = 1;
-			addLinePropertyCode(volId, locId, code, inclusive);
+			addLinePropertyCode(volId, locId, code.c_str(), inclusive);
 		} else if(primitive.compare("Vertex") == 0 ||
 		          primitive.compare("vertex") == 0 )  {
 			ss >> volId;
 			ss >> locId;
-			ss >> code;
-			addVertexPropertyCode(volId, locId, code);
+			addVertexPropertyCode(volId, locId, code.c_str());
 		} else if(primitive[0] == '/' && primitive[1] == '/') { // comment - continue without doing anything
 			;
 		} else {

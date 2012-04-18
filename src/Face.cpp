@@ -24,7 +24,7 @@ Face::Face(int id) {
 		line[i] = NULL;
 	}
 
-	bc_code    = 0;
+	bc_code    = NULL;
 	this->id   = id;
 }
 
