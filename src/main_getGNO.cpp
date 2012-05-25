@@ -24,6 +24,7 @@ using namespace Go;
 bool   verbose         = false;
 bool   legacy          = false;
 double tol             = -1;
+std::vector<bool> periodic(3,false);
 string fileUsage       = "\
 File usage: gpm [-v] <inputFile> \n\
   \n\
@@ -33,11 +34,15 @@ File usage: gpm [-v] <inputFile> \n\
     -v          : verbose output  \n\
     -TOL        : topology tolerance  \n\
     -legacy     : old enumeration scheme  \n\
-    -help       : display this help screen";
+    -help       : display this help screen\n\
+    -periodicX  : periodic in X-direction\n\
+    -periodicY  : periodic in Y-direction\n\
+    -periodicZ  : periodic in Z-direction\n";
 SplineModel model;
 
 void processParameters(int argc, char** argv) {
 	bool fileRead = false;
+
 	for(int argi=1; argi<argc; argi++) {
 		const char *arg = argv[argi];
 		if(strcmp(arg, "-v") == 0) {
@@ -49,6 +54,12 @@ void processParameters(int argc, char** argv) {
 			exit(0);
 		} else if(strcmp(arg, "-legacy") == 0) {
 			legacy = true;
+		} else if(strcmp(arg, "-periodicX") == 0) {
+		        periodic[0] = true;
+		} else if(strcmp(arg, "-periodicY") == 0) {
+		        periodic[1] = true; 
+		} else if(strcmp(arg, "-periodicZ") == 0) {
+		        periodic[2] = true;   
 		} else {
 			ifstream inFile;
 			inFile.open(arg);
@@ -99,8 +110,9 @@ void processParameters(int argc, char** argv) {
 int main(int argc, char **argv) {
 	processParameters(argc, argv);
 	// SplineModel model(volumes); // epsilon 1e-4
-	TopologySet *topology = model.getTopology();
-	if( model.enforceRightHandSystem() ) {
+	//TopologySet *topology = model.getTopology();
+	
+	if( model.enforceRightHandSystem()) {
 		cerr << "WARNING: system reparameterized to strict right-hand-system. \n";
 		cerr << "         stored in \"reparameterized.g2\"\n";
 		ofstream outFile;
@@ -110,6 +122,10 @@ int main(int argc, char **argv) {
 	}
 	if(tol > 0)
 		model.setTopologyTolerance(tol);
+
+	if (periodic[0] || periodic[1] || periodic[2])
+	  model.buildTopology(&periodic);
+	TopologySet *topology = model.getTopology();
 
 
 	if(verbose) {

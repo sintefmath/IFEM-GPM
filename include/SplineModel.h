@@ -56,6 +56,9 @@ class SplineModel {
 		SplineModel(std::vector<VolumePointer>  &spline_volumes);
 		~SplineModel();
 
+		// Building topology
+		void buildTopology(std::vector<bool>* periodic = NULL);
+
 		// common get-functions
 		TopologySet *getTopology();
 		std::vector<VolumePointer> &getSplineVolumes();

@@ -27,7 +27,7 @@ class TopologySet {
 
 		void addPatch(VolumePointer vol);
 		void addPatch(SurfacePointer surf);
-		void buildTopology();
+		void buildTopology(std::vector<bool>* periodic=NULL);
 
 		int numbVertices() const;
 		int numbLines() const;
@@ -37,6 +37,7 @@ class TopologySet {
 		int numbVolumes() const;
 
 		void setTolerance(double tol);
+		void setPeriodic(int dir);
 
 		Volume* getVolume(int id);
 		Face* getFace(int id);

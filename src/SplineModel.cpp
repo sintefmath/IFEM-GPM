@@ -71,6 +71,12 @@ bool SplineModel::isVolumetricModel() const {
 	return volumetric_model;
 }
 
+
+void SplineModel::buildTopology(std::vector<bool>* periodic) {
+  topology->buildTopology(periodic);
+}
+
+
 TopologySet* SplineModel::getTopology() {
 	return topology;
 }

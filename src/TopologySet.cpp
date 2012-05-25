@@ -75,6 +75,131 @@ TopologySet::~TopologySet() {
 	buildTopology();
 }
 
+
+/**********************************************************************************//**
+ * \brief sets periodicitty in a given direction
+ * \param dir periodic direction (0=X, 1=Y, 2=Z) 
+ *
+ *************************************************************************************/
+void TopologySet::setPeriodic(int dir) {
+  if (dir > 2) {
+    cerr << "Topology::setPeriodic: dir > 2 not possible" << endl;    
+    return;
+  }
+  else if ((dir > 1) && !volumetric_model) {
+    cerr << "Topology::setPeriodic: dir > 1 not possible for surface model" << endl;   
+    return;
+  }
+
+  // Find min/max coordinate for the diven direction
+  double min = 1.0e20;
+  double max = -1.0e20;
+
+  std::vector<VolumePointer>::iterator vit;
+  std::vector<SurfacePointer>::iterator sit;
+
+  std::vector<double>::iterator start;
+  std::vector<double>::iterator end;
+  std::vector<double>::iterator coef; 
+
+  // Find min and max coordinates
+  if(volumetric_model)
+    for (vit=spline_volumes_.begin();vit != spline_volumes_.end();vit++) {
+      int dim = (*vit)->dimension();
+      
+      if ((*vit)->rational()) {
+	dim++;
+
+	start = (*vit)->rcoefs_begin();
+	end   = (*vit)->rcoefs_end();
+      }
+      else {
+	start = (*vit)->coefs_begin();
+	end   = (*vit)->coefs_end();
+      }
+
+      for (coef = start;coef != end;coef += dim) {
+	double val = *(coef+dir);
+	
+	if (val < min)      
+	  min = val;
+	else if (val > max) 
+	  max = val;
+      }
+    }
+  else  // Surface spline
+    for (sit=spline_surfaces_.begin();sit != spline_surfaces_.end();sit++) {
+      int dim = (*sit)->dimension();
+      
+      if ((*sit)->rational()) {
+	dim++;
+	
+	start = (*sit)->rcoefs_begin();
+	end   = (*sit)->rcoefs_end();
+      }
+      else {
+	start = (*sit)->coefs_begin();
+	end   = (*sit)->coefs_end();
+      }
+      
+      for (coef = start;coef != end;coef += dim) {
+	double val = *(coef+dir);
+	
+	if (val < min)      
+	  min = val;
+	else if (val > max) 
+	  max = val;
+      }
+    }    
+
+  // Set max coordinate equal to min coordinate
+    if(volumetric_model) 
+    for (vit=spline_volumes_.begin();vit != spline_volumes_.end();vit++) {
+      int dim = (*vit)->dimension();
+
+      if ((*vit)->rational()) {
+	dim++;
+
+	start = (*vit)->rcoefs_begin();
+	end   = (*vit)->rcoefs_end();
+      }
+      else {
+	start = (*vit)->coefs_begin();
+	end   = (*vit)->coefs_end();
+      }
+
+      for (coef = start;coef != end;coef += dim) {
+	double val = *(coef+dir);
+	
+	if (fabs(max-val) < tol)      
+	  *(coef+dir) = min;
+      }
+    }
+    else  // Surface spline
+      for (sit=spline_surfaces_.begin();sit != spline_surfaces_.end();sit++) {
+	int dim = (*sit)->dimension();
+	
+	if ((*sit)->rational()) {
+	  dim++;
+	  
+	  start = (*sit)->rcoefs_begin();
+	  end   = (*sit)->rcoefs_end();
+	}
+	else {
+	  start = (*sit)->coefs_begin();
+	  end   = (*sit)->coefs_end();
+	}
+	
+	for (coef = start;coef != end;coef += dim) {
+	  double val = *(coef+dir);
+	  
+	  if (fabs(max-val) < tol)      
+	    *(coef+dir) = min;
+	}
+      }       
+}
+
+
 /**********************************************************************************//**
  * \brief adds another patch to the model
  * \param surf surface patch to be added to the total model
@@ -110,11 +235,18 @@ void TopologySet::addPatch(VolumePointer vol) {
 }
 
 /*! \brief build the topology given by all vertex, line, face and volume relations */
-void TopologySet::buildTopology() {
+void TopologySet::buildTopology(std::vector<bool>* periodic) {
 	volume_.clear();
 	face_.clear();
 	line_.clear();
 	vertex_.clear();
+	
+	// Handle periodicity
+	if (periodic)
+	  for (int i = 0;i < periodic->size();i++)
+	    if ((*periodic)[i])
+	      this->setPeriodic(i);
+
 	if(volumetric_model) {
 		for(uint i=0; i<spline_volumes_.size(); i++) {
 			bool rat = spline_volumes_[i]->rational();
