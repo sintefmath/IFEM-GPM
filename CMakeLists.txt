@@ -17,14 +17,14 @@ FIND_PACKAGE(GLUT REQUIRED)
 
 # Required libraries
 SET(DEPLIBS ${GoTrivariate_LIBRARIES} ${GoTools_LIBRARIES}
-            ${GLUT_glut_LIBRARY}
+#            ${GLUT_glut_LIBRARY}
 )
 
 # Required include directories
 SET(INCLUDES
   ${GoTools_INCLUDE_DIRS}
   ${GoTrivariate_INCLUDE_DIRS}
-  ${GLUT_INCLUDE_DIR}
+#  ${GLUT_INCLUDE_DIR}
   ${PROJECT_SOURCE_DIR}/include
 )
 
@@ -75,6 +75,17 @@ FILE(GLOB_RECURSE orderElevation_SRCS ${PROJECT_SOURCE_DIR}/src/main_orderElevat
 ADD_EXECUTABLE(orderElevation ${orderElevation_SRCS})
 TARGET_LINK_LIBRARIES(orderElevation ${DEPLIBS})
 
+FILE(GLOB_RECURSE orderReduction_SRCS ${PROJECT_SOURCE_DIR}/src/main_orderReduction.cpp)
+ADD_EXECUTABLE(orderReduction ${orderReduction_SRCS})
+TARGET_LINK_LIBRARIES(orderReduction ${DEPLIBS})
+
+FILE(GLOB_RECURSE raiseOrder_SRCS ${PROJECT_SOURCE_DIR}/src/main_raiseOrder.cpp)
+ADD_EXECUTABLE(raiseOrder ${raiseOrder_SRCS})
+TARGET_LINK_LIBRARIES(raiseOrder ${DEPLIBS})
+
+IF(NOT GPM_INSTALL_PREFIX)
+  SET(GPM_INSTALL_PREFIX $ENV{HOME})
+ENDIF(NOT GPM_INSTALL_PREFIX)
 
 # Regression tests
 FILE(GLOB_RECURSE REFINE_TESTFILES "${PROJECT_SOURCE_DIR}/test/Refine/*.reg")
