@@ -16,10 +16,6 @@ CONFIGURE_FILE(include/GPM_version.h.in
 CONFIGURE_FILE(test/fixupdebs.sh.in
                ${PROJECT_SOURCE_DIR}/test/fixupdebs.sh @ONLY)
 
-# Add local modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-                      ${CMAKE_SOURCE_DIR}/cmake/Modules)
-
 # Required packages
 FIND_PACKAGE(GoTools REQUIRED)
 FIND_PACKAGE(GoTrivariate REQUIRED)
