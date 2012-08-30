@@ -23,18 +23,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 # Required packages
 FIND_PACKAGE(GoTools REQUIRED)
 FIND_PACKAGE(GoTrivariate REQUIRED)
-FIND_PACKAGE(GLUT REQUIRED)
 
 # Required libraries
-SET(DEPLIBS ${GoTrivariate_LIBRARIES} ${GoTools_LIBRARIES}
-#            ${GLUT_glut_LIBRARY}
-)
+SET(DEPLIBS ${GoTrivariate_LIBRARIES} ${GoTools_LIBRARIES})
 
 # Required include directories
 SET(INCLUDES
   ${GoTools_INCLUDE_DIRS}
   ${GoTrivariate_INCLUDE_DIRS}
-#  ${GLUT_INCLUDE_DIR}
   ${PROJECT_SOURCE_DIR}/include
 )
 
