@@ -37,7 +37,7 @@ rm -f $path/libifem-gpm_${version}_$arch-$code-bin.deb
 # Step 2
 Unpack $path/libifem-gpm_${version}_$arch-$code-dev.deb
 sed -i control -e 's/\(Description: .*$\)/\1 - development headers/g'
-sed -i control -e 's/Depends:.*$/Depends: libifem-gpm, libgotools-core-dev, libgotools-trivariate-dev/g'
+sed -i control -e 's/Depends:.*$/Depends: libifem-gpm, libgotools-core-dev, libgotools-trivariate-dev, libifem-cmakerules/g'
 sed -i control -e 's/\(Architecture: .*$\)/Architecture: all/g'
 sed '/^$/d' -i control
 Pack $path/UbuntuDebs/libifem-gpm-dev_${version}_all-$code.deb
