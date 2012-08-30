@@ -117,10 +117,8 @@ ELSE(WIN32)
   INSTALL(FILES ${GPM_HEADERS}
           DESTINATION include/GPM COMPONENT dev)
 
-  FILE(GLOB_RECURSE LOCAL_CMAKE_MODULES cmake/Modules/*.cmake)
-
   # cmake modules
-  INSTALL(FILES ${LOCAL_CMAKE_MODULES} 
+  INSTALL(FILES cmake/Modules/FindGPM.cmake
           DESTINATION ${CMAKE_ROOT}/Modules
           COMPONENT dev)
 ENDIF(WIN32)
