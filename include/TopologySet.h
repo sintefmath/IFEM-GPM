@@ -6,25 +6,17 @@
 #include "SplineModel.h"
 #include "primitives.h"
 
-typedef struct ltVolId
-{
-  bool operator()(const Volume* v1, const Volume* v2) const
-  {
-    return (v1->id < v2->id);
-  }
-} ltVolOper;
 
-
-typedef struct ltFaceId
+template<class T> struct ltOper
 {
-  bool operator()(const Face* f1, const Face* f2) const
+  bool operator()(const T* f1, const T* f2) const
   {
     return (f1->id < f2->id);
   }
-} ltFaceOper;
+};
 
-typedef std::set<Volume*,ltVolOper> VolSet;
-typedef std::set<Face*,ltFaceOper>  FaceSet;
+typedef std::set<Volume*,ltOper<Volume> > VolSet;
+typedef std::set<Face*,ltOper<Face> >  FaceSet;
 
 
 /**********************************************************************************//**
