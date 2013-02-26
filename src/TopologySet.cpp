@@ -55,7 +55,7 @@ TopologySet::TopologySet(std::vector<VolumePointer> &spline_volumes, double tol)
 TopologySet::~TopologySet() {
 	set<Vertex*>::iterator	v_it;
 	set<Line*>::iterator    l_it;
-	set<Face*>::iterator    f_it;
+	FaceSet::iterator    f_it;
 
 	for(v_it = vertex_begin(); v_it != vertex_end(); v_it++)
 		delete *v_it;
@@ -520,10 +520,10 @@ Line* TopologySet::addLine(Line* l) {
  *************************************************************************************/
 Face* TopologySet::addFace(Face* f) {
 	if(surface_model) {
-		face_.insert(f);
-		return f;
+	  face_.insert(f);
+	  return f;
 	}
-	set<Face*>::iterator it;
+	FaceSet::iterator it;
 	for(it=face_.begin(); it != face_.end(); it++) {
 		// cout << "Testing equality " << (*it)->v1->id << "(" << (*it)->face1 << ") - " << f->v1->id << "(" << f->face1 << ")\n";
 		if( (*it)->equals(f, tol) ) {
@@ -551,7 +551,7 @@ void TopologySet::addVolume(Volume* v) {
 std::set<Vertex*> TopologySet::getBoundaryVertices() {
 	set<Vertex*> vert;
 	set<Line*>   line;
-	set<Face*>   face;
+	FaceSet   face;
 	getBoundaries(vert, line, face);
 	return vert;
 }
@@ -561,7 +561,7 @@ std::set<Line*> TopologySet::getBoundaryLines() {
 	// if(volumetric_model)
 		set<Vertex*> vert;
 		set<Line*>   line;
-		set<Face*>   face;
+		FaceSet   face;
 		getBoundaries(vert, line, face);
 		return line;
 	// } else if(surface_model) {
@@ -572,9 +572,9 @@ std::set<Line*> TopologySet::getBoundaryLines() {
 }
 
 /*! \brief fetch all faces on the boundary of the model */
-std::set<Face*> TopologySet::getBoundaryFaces() {
-	set<Face*> results;
-	set<Face*>::iterator it;
+FaceSet TopologySet::getBoundaryFaces() {
+	FaceSet results;
+	FaceSet::iterator it;
 	if(volumetric_model) {
 		for(it=face_.begin(); it != face_.end(); it++)
 			if((*it)->volume.size() == 1)
@@ -600,13 +600,13 @@ std::set<Face*> TopologySet::getBoundaryFaces() {
  *       such considered on the boundary. This will in turn give wrong internal lines and
  *       vertices as well.
  *************************************************************************************/
-void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, std::set<Face*> faces) {
+void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, FaceSet faces) {
 	faces.clear();
 	lines.clear();
 	vertices.clear();
 	if(volumetric_model) {
 		faces = getBoundaryFaces();
-		set<Face*>::iterator it;
+		FaceSet::iterator it;
 		for(it=faces.begin(); it != faces.end(); it++) {
 			vector<int> lineNumb = Line::getLineEnumeration( *(*it)->face.begin() );
 			Volume *firstVol = *(*it)->volume.begin();
@@ -622,19 +622,19 @@ void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> line
 	}
 }
 
-set<Volume*>::iterator TopologySet::volume_begin() {
+VolSet::iterator TopologySet::volume_begin() {
 	return volume_.begin();
 }
 
-set<Volume*>::iterator TopologySet::volume_end() {
+VolSet::iterator TopologySet::volume_end() {
 	return volume_.end();
 }
 
-set<Face*>::iterator TopologySet::face_begin() {
+FaceSet::iterator TopologySet::face_begin() {
 	return face_.begin();
 }
 
-set<Face*>::iterator TopologySet::face_end() {
+FaceSet::iterator TopologySet::face_end() {
 	return face_.end();
 }
 
@@ -682,7 +682,7 @@ int TopologySet::numbFaces() const {
 /*! \brief Number of unique faces which are not degenerated to lines or points */
 int TopologySet::numbNonDegenFaces() const {
 	int results = 0;
-	set<Face*>::iterator it;
+	FaceSet::iterator it;
 	for(it=face_.begin(); it != face_.end(); it++)
 		if( !(*it)->isDegen() )
 			results++;
@@ -696,7 +696,7 @@ int TopologySet::numbVolumes() const {
 
 /*! \brief get one specific face */
 Face* TopologySet::getFace(int id) {
-	set<Face*>::iterator it;
+	FaceSet::iterator it;
 	for(it=face_.begin(); it != face_.end(); it++)
 		if( (*it)->id == id)
 			return *it;
@@ -705,7 +705,7 @@ Face* TopologySet::getFace(int id) {
 
 /*! \brief get one specific volume */
 Volume* TopologySet::getVolume(int id) {
-	set<Volume*>::iterator it;
+	VolSet::iterator it;
 	for(it=volume_.begin(); it != volume_.end(); it++)
 		if( (*it)->id == id)
 			return *it;

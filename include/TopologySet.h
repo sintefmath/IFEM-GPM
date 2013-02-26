@@ -4,11 +4,28 @@
 #include <set>
 #include <vector>
 #include "SplineModel.h"
+#include "primitives.h"
 
-class Volume;
-class Face;
-class Line;
-class Vertex;
+typedef struct ltVolId
+{
+  bool operator()(const Volume* v1, const Volume* v2) const
+  {
+    return (v1->id < v2->id);
+  }
+} ltVolOper;
+
+
+typedef struct ltFaceId
+{
+  bool operator()(const Face* f1, const Face* f2) const
+  {
+    return (f1->id < f2->id);
+  }
+} ltFaceOper;
+
+typedef std::set<Volume*,ltVolOper> VolSet;
+typedef std::set<Face*,ltFaceOper>  FaceSet;
+
 
 /**********************************************************************************//**
  * \brief keeping track of the module topology and primitive (point/line/face) relations
@@ -44,17 +61,17 @@ class TopologySet {
 		
 		std::set<Vertex*> getBoundaryVertices();
 		std::set<Line*>   getBoundaryLines();
-		std::set<Face*>   getBoundaryFaces();
-		void              getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, std::set<Face*> faces);
+		FaceSet   getBoundaryFaces();
+		void              getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, FaceSet faces);
 
 		std::set<Vertex*>::iterator vertex_begin();
 		std::set<Vertex*>::iterator vertex_end();
 		std::set<Line*>::iterator line_begin();
 		std::set<Line*>::iterator line_end();
-		std::set<Face*>::iterator face_begin();
-		std::set<Face*>::iterator face_end();
-		std::set<Volume*>::iterator volume_begin();
-		std::set<Volume*>::iterator volume_end();
+		FaceSet::iterator face_begin();
+		FaceSet::iterator face_end();
+		VolSet::iterator volume_begin();
+		VolSet::iterator volume_end();
 
 	private:
 		void    addVolume(Volume* v);
@@ -62,11 +79,11 @@ class TopologySet {
 		Line*   addLine(Line* l);
 		Vertex* addVertex(Vertex* v);
 
-		double tol;                    //!< Control point tolerance (given in euclidean distance)
-		std::set<Volume*> volume_;     //!< All unique volumes
-		std::set<Face*>   face_;       //!< All unique (possible degenerate) faces
-		std::set<Line*>   line_;       //!< All unique (possible degenerate) edge lines
-		std::set<Vertex*> vertex_;     //!< All unique corner vertices
+		double tol;                            //!< Control point tolerance (given in euclidean distance)
+		VolSet  volume_;                       //!< All unique volumes
+		FaceSet face_;                         //!< All unique (possible degenerate) faces
+		std::set<Line*>   line_;               //!< All unique (possible degenerate) edge lines
+		std::set<Vertex*> vertex_;             //!< All unique corner vertices
  
  		bool volumetric_model;
  		bool surface_model;
