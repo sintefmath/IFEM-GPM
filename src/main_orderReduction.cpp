@@ -138,9 +138,19 @@ int main(int argc, char** argv)
 
       // basis1 should be one degree higher than basis2 and C^p-1 continuous
       int ndim = v_it->dimension();
-      Go::BsplineBasis b1 = v_it->basis(0).extendedBasis(v_it->order(0)+1);
-      Go::BsplineBasis b2 = v_it->basis(1).extendedBasis(v_it->order(1)+1);
-      Go::BsplineBasis b3 = v_it->basis(2).extendedBasis(v_it->order(2)+1);
+      // Go::BsplineBasis b1 = v_it->basis(0).extendedBasis(v_it->order(0)+1);
+      // Go::BsplineBasis b2 = v_it->basis(1).extendedBasis(v_it->order(1)+1);
+      // Go::BsplineBasis b3 = v_it->basis(2).extendedBasis(v_it->order(2)+1);
+      std::vector<double>::const_iterator first =  ++v_it->basis(0).begin();
+      std::vector<double>::const_iterator last  =  --v_it->basis(0).end();
+      Go::BsplineBasis b1 = Go::BsplineBasis(v_it->order(0)-1,first,last);
+      first =  ++v_it->basis(1).begin();
+      last  =  --v_it->basis(1).end();
+      Go::BsplineBasis b2 = Go::BsplineBasis(v_it->order(1)-1,first,last);
+      first =  ++v_it->basis(2).begin();
+      last  =  --v_it->basis(2).end();
+      Go::BsplineBasis b3 = Go::BsplineBasis(v_it->order(2)-1,first,last);
+
 
       // Note: Currently this is implemented for non-rational splines only.
       // TODO: Ask the splines people how to fix this properly, that is, how
