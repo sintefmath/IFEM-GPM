@@ -56,7 +56,7 @@ class TopologySet {
 		std::set<Vertex*> getBoundaryVertices();
 		std::set<Line*>   getBoundaryLines();
 		FaceSet   getBoundaryFaces();
-		void              getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, FaceSet faces);
+		void              getBoundaries(std::set<Vertex*>& vertices, std::set<Line*>& lines, FaceSet& faces);
 
 		std::set<Vertex*>::iterator vertex_begin();
 		std::set<Vertex*>::iterator vertex_end();

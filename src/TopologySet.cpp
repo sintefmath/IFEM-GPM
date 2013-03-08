@@ -600,7 +600,7 @@ FaceSet TopologySet::getBoundaryFaces() {
  *       such considered on the boundary. This will in turn give wrong internal lines and
  *       vertices as well.
  *************************************************************************************/
-void TopologySet::getBoundaries(std::set<Vertex*> vertices, std::set<Line*> lines, FaceSet faces) {
+void TopologySet::getBoundaries(std::set<Vertex*>& vertices, std::set<Line*>& lines, FaceSet& faces) {
 	faces.clear();
 	lines.clear();
 	vertices.clear();
