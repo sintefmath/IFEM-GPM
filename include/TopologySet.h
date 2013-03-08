@@ -11,6 +11,8 @@ template<class T> struct ltOper
 {
   bool operator()(const T* f1, const T* f2) const
   {
+    if (f1->id == -1)
+      return true;
     return (f1->id < f2->id);
   }
 };
