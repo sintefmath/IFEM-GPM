@@ -712,3 +712,68 @@ Volume* TopologySet::getVolume(int id) {
 	return NULL;
 }
 
+void TopologySet::write(ostream &out) const {
+	VolSet::iterator it;
+	vector<Volume*>::iterator it2;
+	for(it=volume_.begin(); it != volume_.end(); it++) {
+		out << "Volume #" << (*it)->id << ":  ";
+		for(int i=0; i<6; i++) {
+			int written=0;
+			if((*it)->face[i]) {
+				for(int j=0; j<(*it)->face[i]->volume.size(); j++) { 
+					if((*it)->face[i]->volume[j]->id != (*it)->id) {
+						if(written++ > 0)
+							out << "&";
+						out << (*it)->face[i]->volume[j]->id ;
+					}
+				}
+			}
+			if(written == 0)
+				out << "-";
+			out << " ";
+		}
+		out << endl;
+	}
+	
+}
+
+void TopologySet::writeXML(ostream &out) const {
+	FaceSet::iterator it;
+	vector<Volume*>::iterator vit;
+	vector<int> faceId;
+	vector<int> allFaceId;
+	vector<int> allVolId;
+	out << "  <topology>" << endl;
+	for(it=face_.begin(); it != face_.end(); it++) {
+		int masterVol  = (**it).volume[0]->id;
+		allFaceId      = (**it).volume[0]->getSurfaceEnumeration(*it);
+		int masterFace = allFaceId[0];
+		for(int i=1; i<allFaceId.size(); i++) { // if this happens we have a periodic geometry
+			out << "    <connection master=\"" << masterVol +1 << "\""
+			    << " mface=\"" << masterFace                +1 << "\""
+			    << " slave=\"" << masterVol                 +1 << "\""
+			    << " sface=\"" << allFaceId[i]              +1 << "\"";
+			int orient = (**it).uv_flip[i]*4 + (**it).u_reverse[i]*2 + (**it).v_reverse[i]*1; // forms a 3bit mask of local orientation
+			if(orient != 0)
+				out << " orient=\"" << orient << "\"";
+			out << "/>\n";
+		}
+		for(int i=1; i<(**it).volume.size(); i++) {
+			if((**it).volume[i]->id == masterVol) continue;
+			allFaceId      = (**it).volume[i]->getSurfaceEnumeration(*it);
+			int slaveVol   = (**it).volume[i]->id;
+			for(int j=0; j<allFaceId.size(); j++) { // if this happens we have a periodic geometry
+				out << "    <connection master=\"" << masterVol +1<< "\""
+			    	<< " mface=\"" << masterFace                +1 << "\""
+			    	<< " slave=\"" << slaveVol                  +1 << "\""
+			    	<< " sface=\"" << allFaceId[j]              +1 << "\"";
+				int orient = (**it).uv_flip[i]*4 + (**it).u_reverse[i]*2 + (**it).v_reverse[i]*1; // forms a 3bit mask of local orientation
+				if(orient != 0)
+					out << " orient=\"" << orient << "\"";
+				out << "/>\n";
+			}
+		}
+	}
+	out << "  </topology>" << endl;
+}
+

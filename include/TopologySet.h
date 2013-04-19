@@ -67,6 +67,9 @@ class TopologySet {
 		VolSet::iterator volume_begin();
 		VolSet::iterator volume_end();
 
+		void write(std::ostream &out)    const;
+		void writeXML(std::ostream &out) const;
+
 	private:
 		void    addVolume(Volume* v);
 		Face*   addFace(Face* f);
@@ -82,7 +85,7 @@ class TopologySet {
  		bool volumetric_model;
  		bool surface_model;
 		std::vector<SurfacePointer>  spline_surfaces_; //!< Spline objects
-		std::vector<VolumePointer> spline_volumes_; //!< Spline objects
+		std::vector<VolumePointer>   spline_volumes_;  //!< Spline objects
 };
 
 #endif

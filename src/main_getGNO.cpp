@@ -133,6 +133,9 @@ int main(int argc, char **argv) {
 		cout << "Total number of lines   : " << topology->numbLines() << " (" << topology->numbNonDegenLines() << " non-degenerate ones) " << endl;
 		cout << "Total number of faces   : " << topology->numbFaces() << " (" << topology->numbNonDegenFaces() << " non-degenerate ones) " << endl;
 		cout << "Total number of volumes : " << topology->numbVolumes() << endl;
+		cout << "Volume connections      : " << endl;
+		topology->write(cout);
+		topology->writeXML(cout);
 	}
 
 	// ifstream inFile;
