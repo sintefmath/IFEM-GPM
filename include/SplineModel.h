@@ -92,6 +92,7 @@ class SplineModel {
 		// input-/output-functions
 		void writeSplines(std::ostream &os) const;
 		void writeGlobalNumberOrdering(std::ostream &os) const;
+		void writeModelXMLProperties(std::ostream &os) const;
 		void writeModelProperties(std::ostream &os) const;
 		void readSplines(std::istream &is, bool buildTopology=true);
 		void readGlobalNumberOrdering(std::istream &is);

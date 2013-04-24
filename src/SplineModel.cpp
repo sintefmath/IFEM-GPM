@@ -1216,6 +1216,92 @@ void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
 	}
 }
 
+void SplineModel::writeModelXMLProperties(std::ostream &os) const {
+	set<Volume*>::iterator v_it;
+	set<Face*>::iterator   f_it;
+	set<Line*>::iterator   l_it;
+	set<Vertex*>::iterator c_it; //corner iterator
+
+	string activeString = "";
+	bool openSetBlock = false;
+
+	/***************     WRITE IT IN THE INPUT-FORM, NOT REALLY USEFULL FOR PRODUCTION    ***********************/
+	os << "  <boundaryconditions>" << endl;
+
+	if(volumetric_model) {
+		for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
+			Face *f = *f_it;
+			if(f->bc_code != NULL) {
+				if(activeString.compare(f->bc_code) != 0) { 
+					if(openSetBlock) os << "    </set>" << endl;
+					activeString = f->bc_code;
+					openSetBlock = true;
+					os << "    <set name=\"" << activeString << "\" type=\"face\">" << endl;
+				}
+				os << "      <item patch=\"" << f->volume[0]->id << "\"> " << f->face[0] << " </item>" << endl;
+			}
+		}
+		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
+			Line *l = *l_it;
+			vector<int> numb, parDir, parStep;
+			(*l->volume.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
+			if(l->bc_code != NULL) {
+				if(activeString.compare(l->bc_code) != 0) { 
+					if(openSetBlock) os << "    </set>" << endl;
+					activeString = l->bc_code;
+					openSetBlock = true;
+					os << "    <set name=\"" << activeString << "\" type=\"edge\">" << endl;
+				}
+				os << "      <item patch=\"" << (*l->volume.begin())->id << "\"> " << numb[0] << " </item>" << endl;
+			}
+		}
+		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
+			Vertex *c = *c_it;
+			vector<int> corner_id = (*c->volume.begin())->getVertexEnumeration(c);
+			if(c->bc_code != NULL) {
+				if(activeString.compare(c->bc_code) != 0) { 
+					if(openSetBlock) os << "    </set>" << endl;
+					activeString = c->bc_code;
+					openSetBlock = true;
+					os << "    <set name=\"" << activeString << "\" type=\"vertex\">" << endl;
+				}
+				os << "      <item patch=\"" << (*c->volume.begin())->id << "\"> " << corner_id[0] << " </item>" << endl;
+			}
+		}
+	} else { // SURFACE model
+		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
+			Line *l = *l_it;
+			vector<int> numb, parDir, parStep;
+			(*l->face.begin())->getEdgeEnumeration(l, numb, parDir, parStep);
+			if(l->bc_code != NULL) {
+				if(activeString.compare(l->bc_code) != 0) { 
+					if(openSetBlock) os << "    </set>" << endl;
+					activeString = l->bc_code;
+					openSetBlock = true;
+					os << "    <set name=\"" << activeString << "\" type=\"edge\">" << endl;
+				}
+				os << "      <item patch=\"" << (*l->volume.begin())->id << "\"> " << numb[0] << " </item>" << endl;
+			}
+		}
+		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
+			Vertex *c = *c_it;
+			vector<int> corner_id = (*c->face.begin())->getVertexEnumeration(c);
+			if(c->bc_code != NULL) {
+				if(activeString.compare(c->bc_code) != 0) { 
+					if(openSetBlock) os << "    </set>" << endl;
+					activeString = c->bc_code;
+					openSetBlock = true;
+					os << "    <set name=\"" << activeString << "\" type=\"vertex\">" << endl;
+				}
+				os << "      <item patch=\"" << (*c->volume.begin())->id << "\"> " << corner_id[0] << " </item>" << endl;
+			}
+		}
+	}
+	if(openSetBlock) os << "    </set>" << endl;
+
+	os << "  </boundaryconditions>" << endl;
+}
+
 void SplineModel::writeModelProperties(std::ostream &os) const {
 	set<Volume*>::iterator v_it;
 	set<Face*>::iterator   f_it;
