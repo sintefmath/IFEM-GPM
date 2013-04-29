@@ -1,0 +1,57 @@
+Source: ifem-gpm
+Priority: extra
+Maintainer: Arne Morten Kvarving <arne.morten.kvarving@sintef.no>
+Build-Depends: debhelper (>= 8.0.0), cmake, libgotools-core-dev,
+               libgotools-trivariate-dev, doxygen, libifem-cmakerules
+Standards-Version: 3.9.2
+Section: libs
+Homepage: <insert the upstream URL, if relevant>
+
+Package: libifem-gpm1-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: libifem-gpm1 (= ${binary:Version})
+Provides: libifem-gpm-dev
+Description: IFEM - geometry preprocessing module -- development files
+ The IFEM GPM module handles preprocessing tasks such as node numbering,
+ refinements and boundary condition assignments.
+
+Package: libifem-gpm1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: libifem-gpm
+Description: IFEM - geometry preprocessing module
+ The IFEM GPM module handles preprocessing tasks such as node numbering,
+ refinements and boundary condition assignments.
+
+Package: libifem-gpm1-bin
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: libifem-gpm-bin
+Description: IFEM - geometry preprocessing module -- applications
+ The IFEM GPM module handles preprocessing tasks such as node numbering,
+ refinements and boundary condition assignments.
+
+Package: libifem-gpm1-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: libifem-gpm-dbg
+Description: IFEM - geometry preprocessing module -- debug symbols
+ The IFEM GPM module handles preprocessing tasks such as node numbering,
+ refinements and boundary condition assignments.
+
+Package: libifem-gpm1-doc
+Section: libdevel
+Architecture: all
+Provides: libifem-gpm-doc
+Multi-Arch: foreign
+Description: IFEM - geometry preprocessing module -- documentation
+ The IFEM GPM module handles preprocessing tasks such as node numbering,
+ refinements and boundary condition assignments.

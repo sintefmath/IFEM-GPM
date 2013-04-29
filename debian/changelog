@@ -1,0 +1,5 @@
+ifem-gpm (0.3.0-1~precise) precise; urgency=low
+
+  * Initial release
+
+ -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Tue, 09 Apr 2013 12:11:51 +0200
