@@ -119,7 +119,7 @@ ELSE(WIN32)
           DESTINATION include/GPM COMPONENT dev)
 
   # cmake modules
-  INSTALL(FILES cmake/Modules/FindGPM.cmake
-          DESTINATION ${CMAKE_ROOT}/Modules
+  INSTALL(FILES cmake/Modules/GPMConfig.cmake
+          DESTINATION lib/GPM
           COMPONENT dev)
 ENDIF(WIN32)
