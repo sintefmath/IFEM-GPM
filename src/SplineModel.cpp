@@ -1251,30 +1251,30 @@ void SplineModel::getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num
 
     // Edge numbers
     int gnod = sl2g[s].edge[0];
-    int lnod = 1;
-    for (size_t i = 1;i < nx-1;i++) {
+    int lnod = nx;
+    for (size_t i = 1;i < ny-1;i++) {
       num[s][lnod++] = gnod;
       gnod +=  sl2g[s].edge_incr[0];
     }
 
     gnod = sl2g[s].edge[1];
-    lnod = nx*(ny-1);
-    for (size_t i = 1;i < nx-1;i++) {
+    lnod = 2*nx-1;
+    for (size_t i = 1;i < ny-1;i++) {
       num[s][lnod++] = gnod;
       gnod +=  sl2g[s].edge_incr[1];
     }
 
     gnod = sl2g[s].edge[2];
-    lnod = nx;
-    for (size_t i = 1;i < ny-1;i++) {
+    lnod = 1;
+    for (size_t i = 1;i < nx-1;i++) {
       num[s][lnod] = gnod;
       gnod +=  sl2g[s].edge_incr[2];
       lnod += nx;
     }
 
     gnod = sl2g[s].edge[3];
-    lnod = 2*nx-1;
-    for (size_t i = 1;i < ny-1;i++) {
+    lnod = nx*(ny-1)+1;
+    for (size_t i = 1;i < nx-1;i++) {
       num[s][lnod] = gnod;
       gnod +=  sl2g[s].edge_incr[3];
       lnod += nx;
@@ -1321,21 +1321,21 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
     }
 
     gnod = vl2g[v].edge[1];
-    lnod = nx*(ny-1);
+    lnod = nx*(ny-1) + 1;
     for (size_t i = 1;i < nx-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[1];
     }
 
     gnod = vl2g[v].edge[2];
-    lnod = nx*ny*(nz-1);
+    lnod = nx*ny*(nz-1) + 1;
     for (size_t i = 1;i < nx-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[2];
     }
 
     gnod = vl2g[v].edge[3];
-    lnod = nx*ny*(nz-1) + nx*(ny-1);
+    lnod = nx*ny*(nz-1) + nx*(ny-1) + 1;
     for (size_t i = 1;i < nx-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[3];
@@ -1356,14 +1356,14 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
     }
 
     gnod = vl2g[v].edge[6];
-    lnod = nx*ny*(nz-1)+nx;
+    lnod = nx*ny*(nz-1) + nx;
     for (size_t i = 1;i < ny-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[6];
     }
 
     gnod = vl2g[v].edge[7];
-    lnod = nx*ny*(nz-1)+2*nx-1;
+    lnod = nx*ny*(nz-1) + 2*nx-1;
     for (size_t i = 1;i < ny-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[7];
@@ -1384,14 +1384,14 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
     }
 
     gnod = vl2g[v].edge[10];
-    lnod = 2*nx*ny-1;
+    lnod = nx*(2*ny-1);
     for (size_t i = 1;i < nz-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[10];
     }
 
     gnod = vl2g[v].edge[11];
-    lnod = nx*(2*ny-1);
+    lnod = 2*nx*ny-1;
     for (size_t i = 1;i < nz-1;i++) {
       num[v][lnod++] = gnod;
       gnod +=  vl2g[v].edge_incr[11];
