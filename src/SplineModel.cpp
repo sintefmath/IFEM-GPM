@@ -1214,6 +1214,15 @@ void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
 			os << sl2g[i].surface << endl;
 		}
 	}
+	// RUNAR
+	std::vector<std::vector<int> > natnum;
+	this->getGlobalNumbering(natnum);
+	for (size_t n = 0;n < natnum.size();n++) {
+	  std::cout << "Global numbers for patch " << n << ":" << std::endl;
+	  for (size_t i = 0;i < natnum[n].size();i++)
+	    std::cout << natnum[n][i] << std::endl;
+	  std::cout << std::endl << std::endl;
+	}
 }
 
 
@@ -1253,37 +1262,37 @@ void SplineModel::getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num
     int gnod = sl2g[s].edge[0];
     int lnod = nx;
     for (size_t i = 1;i < ny-1;i++) {
-      num[s][lnod++] = gnod;
+      num[s][lnod] = gnod;
       gnod +=  sl2g[s].edge_incr[0];
+      lnod += nx;
     }
 
     gnod = sl2g[s].edge[1];
     lnod = 2*nx-1;
     for (size_t i = 1;i < ny-1;i++) {
-      num[s][lnod++] = gnod;
+      num[s][lnod] = gnod;
       gnod +=  sl2g[s].edge_incr[1];
+      lnod += nx;
     }
 
     gnod = sl2g[s].edge[2];
     lnod = 1;
     for (size_t i = 1;i < nx-1;i++) {
-      num[s][lnod] = gnod;
+      num[s][lnod++] = gnod;
       gnod +=  sl2g[s].edge_incr[2];
-      lnod += nx;
     }
 
     gnod = sl2g[s].edge[3];
-    lnod = nx*(ny-1)+1;
+    lnod = nx*(ny-1) + 1;
     for (size_t i = 1;i < nx-1;i++) {
-      num[s][lnod] = gnod;
+      num[s][lnod++] = gnod;
       gnod +=  sl2g[s].edge_incr[3];
-      lnod += nx;
     }
 
     // Face numbers
     gnod = sl2g[s].surface;
     lnod = nx+1;
-    for (size_t j = 1;j < ny-1;j++, lnod++) 
+    for (size_t j = 1;j < ny-1;j++, lnod+=2) 
       for (size_t i = 1;i < nx-1;i++, lnod++) 
 	num[s][lnod] = gnod++;
   }
