@@ -92,6 +92,9 @@ class SplineModel {
 		// input-/output-functions
 		void writeSplines(std::ostream &os) const;
 		void writeGlobalNumberOrdering(std::ostream &os) const;
+		void getGlobalNaturalNumbering(std::vector<std::vector<int> >& num) const;
+		void getGlobalNumbering(std::vector<std::vector<int> >& num) const;
+		void renumberNatural(std::vector<std::vector<int> >& num) const;
 		void writeModelXMLProperties(std::ostream &os) const;
 		void writeModelProperties(std::ostream &os) const;
 		void readSplines(std::istream &is, bool buildTopology=true);
@@ -107,6 +110,8 @@ class SplineModel {
 		std::vector<SurfacePointer> spline_surfaces_; //!< Spline surface objects
 		std::vector<VolumePointer>  spline_volumes_;  //!< Spline volume objects
 
+		void getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num) const;
+		void getGlobalNumberingVolumes(std::vector<std::vector<int> >& num) const;
 };
 
 #endif

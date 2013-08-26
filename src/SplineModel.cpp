@@ -1216,6 +1216,268 @@ void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
 	}
 }
 
+
+void SplineModel::getGlobalNaturalNumbering(std::vector<std::vector<int> >& num) const
+{
+  this->getGlobalNumbering(num);
+  this->renumberNatural(num);
+}
+
+
+void SplineModel::getGlobalNumbering(std::vector<std::vector<int> >& num) const
+{
+  if (volumetric_model)
+    getGlobalNumberingVolumes(num);
+  else
+    getGlobalNumberingSurfaces(num);
+}
+
+
+void SplineModel::getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num) const
+{
+  size_t ns = spline_surfaces_.size();
+  num.resize(ns);
+  
+  for (size_t s = 0;s < ns;s++) {
+    size_t nx = spline_surfaces_[s]->numCoefs_u();
+    size_t ny = spline_surfaces_[s]->numCoefs_v();
+    num[s].resize(nx*ny);
+    
+    // Vertex numbers
+    num[s][0]         = sl2g[s].vertex[0];
+    num[s][nx-1]      = sl2g[s].vertex[1];
+    num[s][nx*(ny-1)] = sl2g[s].vertex[2];
+    num[s][nx*ny-1]   = sl2g[s].vertex[3];
+
+    // Edge numbers
+    int gnod = sl2g[s].edge[0];
+    int lnod = 1;
+    for (size_t i = 1;i < nx-1;i++) {
+      num[s][lnod++] = gnod;
+      gnod +=  sl2g[s].edge_incr[0];
+    }
+
+    gnod = sl2g[s].edge[1];
+    lnod = nx*(ny-1);
+    for (size_t i = 1;i < nx-1;i++) {
+      num[s][lnod++] = gnod;
+      gnod +=  sl2g[s].edge_incr[1];
+    }
+
+    gnod = sl2g[s].edge[2];
+    lnod = nx;
+    for (size_t i = 1;i < ny-1;i++) {
+      num[s][lnod] = gnod;
+      gnod +=  sl2g[s].edge_incr[2];
+      lnod += nx;
+    }
+
+    gnod = sl2g[s].edge[3];
+    lnod = 2*nx-1;
+    for (size_t i = 1;i < ny-1;i++) {
+      num[s][lnod] = gnod;
+      gnod +=  sl2g[s].edge_incr[3];
+      lnod += nx;
+    }
+
+    // Face numbers
+    gnod = sl2g[s].surface;
+    lnod = nx+1;
+    for (size_t j = 1;j < ny-1;j++, lnod++) 
+      for (size_t i = 1;i < nx-1;i++, lnod++) 
+	num[s][lnod] = gnod++;
+  }
+}
+
+
+void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num) const
+{
+  size_t nv = spline_volumes_.size();
+  num.resize(nv);
+  
+  for (size_t v = 0;v < nv;v++) {
+    size_t nx = spline_volumes_[v]->numCoefs(0);
+    size_t ny = spline_volumes_[v]->numCoefs(1);
+    size_t nz = spline_volumes_[v]->numCoefs(2);
+    num[v].resize(nx*ny*nz);
+
+    // Vertex numbers
+    num[v][0]            = vl2g[v].vertex[0];
+    num[v][nx-1]         = vl2g[v].vertex[1];
+    num[v][nx*(ny-1)]    = vl2g[v].vertex[2];
+    num[v][nx*ny-1]      = vl2g[v].vertex[3];
+    size_t offset = nx*ny*(nz-1);
+    num[v][offset]           = vl2g[v].vertex[4];
+    num[v][offset+nx-1]      = vl2g[v].vertex[5];
+    num[v][offset+nx*(ny-1)] = vl2g[v].vertex[6];
+    num[v][offset+nx*ny-1]   = vl2g[v].vertex[7];
+
+    // Edge numbers
+    int gnod = vl2g[v].edge[0];
+    int lnod = 1;
+    for (size_t i = 1;i < nx-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[0];
+    }
+
+    gnod = vl2g[v].edge[1];
+    lnod = nx*(ny-1);
+    for (size_t i = 1;i < nx-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[1];
+    }
+
+    gnod = vl2g[v].edge[2];
+    lnod = nx*ny*(nz-1);
+    for (size_t i = 1;i < nx-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[2];
+    }
+
+    gnod = vl2g[v].edge[3];
+    lnod = nx*ny*(nz-1) + nx*(ny-1);
+    for (size_t i = 1;i < nx-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[3];
+    }
+
+    gnod = vl2g[v].edge[4];
+    lnod = nx;
+    for (size_t i = 1;i < ny-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[4];
+    }
+
+    gnod = vl2g[v].edge[5];
+    lnod = 2*nx-1;
+    for (size_t i = 1;i < ny-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[5];
+    }
+
+    gnod = vl2g[v].edge[6];
+    lnod = nx*ny*(nz-1)+nx;
+    for (size_t i = 1;i < ny-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[6];
+    }
+
+    gnod = vl2g[v].edge[7];
+    lnod = nx*ny*(nz-1)+2*nx-1;
+    for (size_t i = 1;i < ny-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[7];
+    }
+
+    gnod = vl2g[v].edge[8];
+    lnod = nx*ny;
+    for (size_t i = 1;i < nz-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[8];
+    }
+
+    gnod = vl2g[v].edge[9];
+    lnod = nx*ny + nx-1;
+    for (size_t i = 1;i < nz-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[9];
+    }
+
+    gnod = vl2g[v].edge[10];
+    lnod = 2*nx*ny-1;
+    for (size_t i = 1;i < nz-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[10];
+    }
+
+    gnod = vl2g[v].edge[11];
+    lnod = nx*(2*ny-1);
+    for (size_t i = 1;i < nz-1;i++) {
+      num[v][lnod++] = gnod;
+      gnod +=  vl2g[v].edge_incr[11];
+    }
+
+    // Faces
+    gnod = vl2g[v].surface[0];
+    int lnod2 = nx*(ny+1);
+    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[0]) {
+      lnod = lnod2;
+      for (size_t j = 1;j < ny-1;j++, lnod += vl2g[v].surface_incr_i[0]) 
+	num[v][lnod++] = gnod;
+    }
+
+    gnod = vl2g[v].surface[1];
+    lnod2 = nx*ny + 2*nx-1;;
+    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[1]) {
+      lnod = lnod2;
+      for (size_t j = 1;j < ny-1;j++, lnod += vl2g[v].surface_incr_i[1]) 
+	num[v][lnod++] = gnod;
+    }
+
+    gnod = vl2g[v].surface[2];
+    lnod2 = nx*ny + 1;;
+    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[2]) {
+      lnod = lnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[2]) 
+	num[v][lnod++] = gnod;
+    }
+
+    gnod = vl2g[v].surface[3];
+    lnod2 = nx*ny + nx*(ny-1)+1;;
+    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[3]) {
+      lnod = lnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[3]) 
+	num[v][lnod++] = gnod;
+    }
+
+    gnod = vl2g[v].surface[4];
+    lnod2 = nx + 1;;
+    for (size_t j = 1;j < ny-1;j++, lnod2 += vl2g[v].surface_incr_j[4]) {
+      lnod = lnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[4]) 
+	num[v][lnod++] = gnod;
+    }
+
+    gnod = vl2g[v].surface[5];
+    lnod2 = nx*ny*(nz-1)+nx+1;;
+    for (size_t j = 1;j < ny-1;j++, lnod2 += vl2g[v].surface_incr_j[5]) {
+      lnod = lnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[5]) 
+	num[v][lnod++] = gnod;
+    }
+
+    // Interior nodes
+    gnod = vl2g[v].volume;
+    lnod = nx*ny + nx + 1;
+    for (size_t k = 1;k < nz-1;k++)
+      for (size_t j = 1;j < ny-1;j++)
+	for (size_t i = 1;i < nx-1;i++) 
+	  num[v][lnod++] = gnod++;
+  }
+}
+
+
+
+void SplineModel::renumberNatural(std::vector<std::vector<int> >& num) const
+{
+  size_t ns = num.size();
+
+  size_t nnod = num[num.size()-1][num[ns-1].size()-1];
+  std::vector<int> gnum;
+  gnum.resize(nnod,-1);
+  
+  int gnod = 0;
+  for (size_t s = 0;s < ns;s++) 
+    for (size_t i = 0;i < num[s].size();i++) {
+      size_t node = num[s][i];
+      if (gnum[node] > -1)
+	num[s][i] = gnum[node];
+      else 
+	num[s][i] = gnum[node] = gnod++;
+    }
+}
+
+
 void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 	set<Volume*>::iterator v_it;
 	set<Face*>::iterator   f_it;
