@@ -88,13 +88,15 @@ class SplineModel {
 		const char* getLinePropertyCode(  int volId, int lineId);
 		const char* getVertexPropertyCode(int volId, int vertId);
 		bool isVolumetricModel() const;
-		
-		// input-/output-functions
-		void writeSplines(std::ostream &os) const;
-		void writeGlobalNumberOrdering(std::ostream &os) const;
+
+		// Numbering schemes
 		void getGlobalNaturalNumbering(std::vector<std::vector<int> >& num) const;
 		void getGlobalNumbering(std::vector<std::vector<int> >& num) const;
 		void renumberNatural(std::vector<std::vector<int> >& num) const;
+
+		// input-/output-functions
+		void writeSplines(std::ostream &os) const;
+		void writeGlobalNumberOrdering(std::ostream &os) const;
 		void writeModelXMLProperties(std::ostream &os) const;
 		void writeModelProperties(std::ostream &os) const;
 		void readSplines(std::istream &is, bool buildTopology=true);
