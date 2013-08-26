@@ -1215,6 +1215,15 @@ void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
 			os << sl2g[i].surface << endl;
 		}
 	}
+	// RUNAR
+	std::vector<std::vector<int> > natnum;
+	this->getGlobalNaturalNumbering(natnum);
+	for (size_t n = 0;n < natnum.size();n++) {
+	  std::cout << "Global numbers for patch " << n << ":" << std::endl;
+	  for (size_t i = 0;i < natnum[n].size();i++)
+	    std::cout << natnum[n][i] << std::endl;
+	  std::cout << std::endl << std::endl;
+	}
 }
 
 
@@ -1463,7 +1472,7 @@ void SplineModel::renumberNatural(std::vector<std::vector<int> >& num) const
 {
   size_t ns = num.size();
 
-  size_t nnod = *std::max_element(num[ns-1].begin(),num[ns-1].end());
+  size_t nnod = *std::max_element(num[ns-1].begin(),num[ns-1].end()) + 1;
   std::vector<int> gnum;
   gnum.resize(nnod,-1);
   
