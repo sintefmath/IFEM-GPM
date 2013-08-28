@@ -17,6 +17,7 @@ CONFIGURE_FILE(include/GPM_version.h.in
 # Required packages
 FIND_PACKAGE(GoTools REQUIRED)
 FIND_PACKAGE(GoTrivariate REQUIRED)
+FIND_PACKAGE(Doxygen)
 
 INCLUDE(cmake/Modules/UseMultiArch.cmake)
 
@@ -101,12 +102,14 @@ IF(WIN32)
   # TODO
 ELSE(WIN32)
   # For generating the doxy
-  ADD_CUSTOM_TARGET(doc doxygen 
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                    COMMENT "Generating API documentation" VERBATIM)
-  INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
+  IF(DOXYGEN_FOUND)
+    ADD_CUSTOM_TARGET(doc ${DOXYGEN_EXECUTABLE}
+                      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                      COMMENT "Generating API documentation" VERBATIM)
+    INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
 
-  INSTALL(DIRECTORY doc/html/ DESTINATION share/doc/libifem-gpm1/html)
+    INSTALL(DIRECTORY doc/html/ DESTINATION share/doc/libifem-gpm1/html)
+  ENDIF()
   # lib
   INSTALL(TARGETS GPM DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT bin)
   INSTALL(TARGETS refine DESTINATION bin COMPONENT bin)
