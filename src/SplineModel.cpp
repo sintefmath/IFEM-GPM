@@ -1215,15 +1215,6 @@ void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
 			os << sl2g[i].surface << endl;
 		}
 	}
-	// RUNAR
-	std::vector<std::vector<int> > natnum;
-	this->getGlobalNaturalNumbering(natnum);
-	for (size_t n = 0;n < natnum.size();n++) {
-	  std::cout << "Global numbers for patch " << n << ":" << std::endl;
-	  for (size_t i = 0;i < natnum[n].size();i++)
-	    std::cout << natnum[n][i] << std::endl;
-	  std::cout << std::endl << std::endl;
-	}
 }
 
 
@@ -1292,10 +1283,12 @@ void SplineModel::getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num
 
     // Face numbers
     gnod = sl2g[s].surface;
-    lnod = nx+1;
-    for (size_t j = 1;j < ny-1;j++, lnod+=2) 
-      for (size_t i = 1;i < nx-1;i++, lnod++) 
-	num[s][lnod] = gnod++;
+    int lnod2 = nx+1;
+    for (size_t j = 1;j < ny-1;j++, lnod2+=nx) {
+      lnod = lnod2;
+      for (size_t i = 1;i < nx-1;i++) 
+	num[s][lnod++] = gnod++;
+    }
   }
 }
 
@@ -1353,116 +1346,110 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
 
     gnod = vl2g[v].edge[4];
     lnod = nx;
-    for (size_t i = 1;i < ny-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[4];
-    }
+    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+= vl2g[v].edge_incr[4]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[5];
     lnod = 2*nx-1;
-    for (size_t i = 1;i < ny-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[5];
-    }
+    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[5]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[6];
     lnod = nx*ny*(nz-1) + nx;
-    for (size_t i = 1;i < ny-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[6];
-    }
+    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[6]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[7];
     lnod = nx*ny*(nz-1) + 2*nx-1;
-    for (size_t i = 1;i < ny-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[7];
-    }
+    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[7]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[8];
     lnod = nx*ny;
-    for (size_t i = 1;i < nz-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[8];
-    }
+    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[8]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[9];
     lnod = nx*ny + nx-1;
-    for (size_t i = 1;i < nz-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[9];
-    }
+    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[9]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[10];
     lnod = nx*(2*ny-1);
-    for (size_t i = 1;i < nz-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[10];
-    }
+    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[10]) 
+      num[v][lnod] = gnod;
 
     gnod = vl2g[v].edge[11];
     lnod = 2*nx*ny-1;
-    for (size_t i = 1;i < nz-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[11];
-    }
+    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[11]) 
+      num[v][lnod] = gnod;
 
     // Faces
-    gnod = vl2g[v].surface[0];
+    int gnod2 = vl2g[v].surface[0];
     int lnod2 = nx*(ny+1);
-    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[0]) {
+    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[0]) {
       lnod = lnod2;
-      for (size_t j = 1;j < ny-1;j++, lnod += vl2g[v].surface_incr_i[0]) 
-	num[v][lnod++] = gnod;
+      gnod = gnod2;
+      for (size_t j = 1;j < ny-1;j++, lnod+=nx, gnod+=vl2g[v].surface_incr_i[0]) 
+	num[v][lnod] = gnod;
     }
 
-    gnod = vl2g[v].surface[1];
+    gnod2 = vl2g[v].surface[1];
     lnod2 = nx*ny + 2*nx-1;;
-    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[1]) {
+    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[1]) {
       lnod = lnod2;
-      for (size_t j = 1;j < ny-1;j++, lnod += vl2g[v].surface_incr_i[1]) 
-	num[v][lnod++] = gnod;
+      gnod = gnod2;
+      for (size_t j = 1;j < ny-1;j++, lnod+=nx, gnod+=vl2g[v].surface_incr_i[1]) 
+	num[v][lnod] = gnod;
     }
 
-    gnod = vl2g[v].surface[2];
+    gnod2 = vl2g[v].surface[2];
     lnod2 = nx*ny + 1;;
-    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[2]) {
+    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[2]) {
       lnod = lnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[2]) 
-	num[v][lnod++] = gnod;
+      gnod = gnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[2]) 
+	num[v][lnod] = gnod;
     }
 
-    gnod = vl2g[v].surface[3];
+    gnod2 = vl2g[v].surface[3];
     lnod2 = nx*ny + nx*(ny-1)+1;;
-    for (size_t k = 1;k < nz-1;k++, lnod2 += vl2g[v].surface_incr_j[3]) {
+    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[3]) {
       lnod = lnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[3]) 
-	num[v][lnod++] = gnod;
+      gnod = gnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[3]) 
+	num[v][lnod] = gnod;
     }
 
-    gnod = vl2g[v].surface[4];
+    gnod2 = vl2g[v].surface[4];
     lnod2 = nx + 1;;
-    for (size_t j = 1;j < ny-1;j++, lnod2 += vl2g[v].surface_incr_j[4]) {
+    for (size_t j = 1;j < ny-1;j++, lnod2+=ny, gnod2+=vl2g[v].surface_incr_j[4]) {
       lnod = lnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[4]) 
-	num[v][lnod++] = gnod;
+      gnod = gnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[4]) 
+	num[v][lnod] = gnod;
     }
 
-    gnod = vl2g[v].surface[5];
+    gnod2 = vl2g[v].surface[5];
     lnod2 = nx*ny*(nz-1)+nx+1;;
-    for (size_t j = 1;j < ny-1;j++, lnod2 += vl2g[v].surface_incr_j[5]) {
+    for (size_t j = 1;j < ny-1;j++, lnod2+=ny, gnod2+= vl2g[v].surface_incr_j[5]) {
       lnod = lnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod += vl2g[v].surface_incr_i[5]) 
-	num[v][lnod++] = gnod;
+      gnod = gnod2;
+      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[5]) 
+	num[v][lnod] = gnod;
     }
 
     // Interior nodes
-    gnod = vl2g[v].volume;
-    lnod = nx*ny + nx + 1;
-    for (size_t k = 1;k < nz-1;k++)
-      for (size_t j = 1;j < ny-1;j++)
+    gnod  = vl2g[v].volume;
+    int lnod3 = nx*ny + nx + 1;
+    for (size_t k = 1;k < nz-1;k++, lnod3+=nx*ny) {
+      lnod2 = lnod3;
+      for (size_t j = 1;j < ny-1;j++, lnod2+=ny) {
+	lnod = lnod2;
 	for (size_t i = 1;i < nx-1;i++) 
 	  num[v][lnod++] = gnod++;
+      }
+    }
   }
 }
 
