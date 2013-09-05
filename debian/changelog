@@ -1,3 +1,9 @@
+ifem-gpm (0.3.2-1~precise) precise; urgency=low
+
+  * New upstream version
+
+ -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Thu, 05 Sep 2013 11:35:14 +0200
+
 ifem-gpm (0.3.1-1~precise) precise; urgency=low
 
   * Initial release
