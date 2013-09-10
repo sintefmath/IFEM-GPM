@@ -1423,7 +1423,7 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
 
     gnod2 = vl2g[v].surface[4];
     lnod2 = nx + 1;;
-    for (size_t j = 1;j < ny-1;j++, lnod2+=ny, gnod2+=vl2g[v].surface_incr_j[4]) {
+    for (size_t j = 1;j < ny-1;j++, lnod2+=nx, gnod2+=vl2g[v].surface_incr_j[4]) {
       lnod = lnod2;
       gnod = gnod2;
       for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[4]) 
@@ -1432,7 +1432,7 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
 
     gnod2 = vl2g[v].surface[5];
     lnod2 = nx*ny*(nz-1)+nx+1;;
-    for (size_t j = 1;j < ny-1;j++, lnod2+=ny, gnod2+= vl2g[v].surface_incr_j[5]) {
+    for (size_t j = 1;j < ny-1;j++, lnod2+=nx, gnod2+= vl2g[v].surface_incr_j[5]) {
       lnod = lnod2;
       gnod = gnod2;
       for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[5]) 
