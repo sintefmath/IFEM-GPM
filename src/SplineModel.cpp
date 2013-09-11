@@ -1444,7 +1444,7 @@ void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num)
     int lnod3 = nx*ny + nx + 1;
     for (size_t k = 1;k < nz-1;k++, lnod3+=nx*ny) {
       lnod2 = lnod3;
-      for (size_t j = 1;j < ny-1;j++, lnod2+=ny) {
+      for (size_t j = 1;j < ny-1;j++, lnod2+=nx) {
 	lnod = lnod2;
 	for (size_t i = 1;i < nx-1;i++) 
 	  num[v][lnod++] = gnod++;
