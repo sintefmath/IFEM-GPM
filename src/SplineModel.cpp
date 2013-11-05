@@ -74,7 +74,7 @@ bool SplineModel::isVolumetricModel() const {
 
 
 void SplineModel::buildTopology(std::vector<bool>* periodic) {
-  topology->buildTopology(periodic);
+	topology->buildTopology(periodic);
 }
 
 
@@ -122,7 +122,7 @@ bool SplineModel::enforceRightHandSystem() {
 			double v = (spline_surfaces_[i]->startparam_v() + spline_surfaces_[i]->endparam_v()) / 2;
 			vector<Go::Point> results(3); // one position and two derivatives
 			spline_surfaces_[i]->point(results, u, v, 1);
-                        Go::Point normal = results[1] % results[2];
+			Go::Point normal = results[1] % results[2];
 			double jacobian = normal[2];
 			if(jacobian < 0) {
 				anything_switched = true;
@@ -677,279 +677,279 @@ void SplineModel::uniform_p_refine() {
 //! \brief generate the local to global enumerations
 void SplineModel::generateGlobalNumbersPETSc(bool mixed, int start) 
 {
-    int mx = 0;
-  if (mixed) mx = 1;
-
-  if (volumetric_model) {
-    uint iu;
-    int  i, j, e;
-    
-    vector<int>::iterator pos;
-    set<Volume*>::iterator v1, v2;
-    
-    delete[] vl2g;
-    vl2g = new volGlobNumber[spline_volumes_.size()];
-    
-    // initialize all vl2g-variables 
-    for(iu = 0;iu < spline_volumes_.size();iu++) {
-      for(j = 0;j < 8;j++)
-	vl2g[iu].vertex[j] = -1;
-      for(j = 0;j < 12;j++) {
-	vl2g[iu].edge[j] = -1;
-	vl2g[iu].edge_incr[j] = 0;
-      }
-      for(j = 0;j < 6;j++) {
-	vl2g[iu].surface[j] = -1;
-	vl2g[iu].surface_incr_i[j] = 0;
-	vl2g[iu].surface_incr_j[j] = 0;
-      }
-      vl2g[iu].volume = -1;
-    }
-    
-    // Enumerate global nodes
-    int glob_i = start;
-    
-    // Assign global node numbers for all spline volumes
-    for (v1=topology->volume_begin();v1 != topology->volume_end();v1++) {
-      // Assign node numbers for vertices
-      for (i = 0;i < 8;i++) 
-	if (vl2g[(*v1)->id].vertex[i] < 0) {
-	  Vertex* v = (*v1)->corner[i];
-	  
-	  bool dup = false;
-	  int id   = glob_i;
-	  for (j = 0;j < i;j++)
-	    if (v == (*v1)->corner[j]) {
-	      dup = true;
-	      id = vl2g[(*v1)->id].vertex[j];
-	      break;
-	    }
-	  
-	  for (v2 = v->volume.begin();v2 != v->volume.end();v2++) {
-	    vector<int> corners = (*v2)->getVertexEnumeration(v);
-	    for(pos = corners.begin(); pos != corners.end(); pos++)
-	      vl2g[(*v2)->id].vertex[*pos] = id;
-	  }
-	  
-	  if (!dup)
-	    glob_i++;
-	}
-      
-      // Assign node numbers for edges
-      for (e = 0;e < 12;e++) 
-	if (vl2g[(*v1)->id].edge[e] < 0) {
-	  vector<int> edges, dir, step;
-	  
-	  Line* l1 = (*v1)->line[e];	
-	  Volume *first_vol = *(l1->volume.begin());
-	  VolumePointer sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
-	  first_vol->getEdgeEnumeration(l1, edges, dir, step);
-	  int numCoeffs = sv->numCoefs(dir[0])-2+mx; // coefs_here SHOULD be identical for all lines in all volumes for this line
-	  
-	  if(numCoeffs > 0) {
-	    for (v2 = l1->volume.begin();v2 != l1->volume.end();v2++) {
-	      (*v2)->getEdgeEnumeration(l1,edges,dir,step);
-	      
-	      for(iu = 0;iu < edges.size();iu++) 
-		if(l1->degen) {
-		  vector<int> corners = (*v2)->getVertexEnumeration(l1->v1);
-		  int c0 = corners[0]; // should be the same global number on all elements of "corners"
-		  vl2g[(*v2)->id].edge[edges[iu]]      = vl2g[(*v2)->id].vertex[c0];
-		  vl2g[(*v2)->id].edge_incr[edges[iu]] = 0; 
-		} 
-		else {
-		  vl2g[(*v2)->id].edge[edges[iu]]      = (step[iu]==1) ? glob_i : glob_i + numCoeffs - 1;
-		  vl2g[(*v2)->id].edge_incr[edges[iu]] =  step[iu] ;
+	int mx = 0;
+	if (mixed) mx = 1;
+	
+	if (volumetric_model) {
+		uint iu;
+		int  i, j, e;
+		
+		vector<int>::iterator pos;
+		set<Volume*>::iterator v1, v2;
+		
+		delete[] vl2g;
+		vl2g = new volGlobNumber[spline_volumes_.size()];
+		
+		// initialize all vl2g-variables 
+		for(iu = 0;iu < spline_volumes_.size();iu++) {
+			for(j = 0;j < 8;j++)
+				vl2g[iu].vertex[j] = -1;
+			for(j = 0;j < 12;j++) {
+				vl2g[iu].edge[j] = -1;
+				vl2g[iu].edge_incr[j] = 0;
+			}
+			for(j = 0;j < 6;j++) {
+				vl2g[iu].surface[j] = -1;
+				vl2g[iu].surface_incr_i[j] = 0;
+				vl2g[iu].surface_incr_j[j] = 0;
+			}
+			vl2g[iu].volume = -1;
 		}
-	    }
-	  }
-	  
-	  if( !(l1->degen) )
-	    glob_i += numCoeffs;
-	}
-      
-      // Assign node numbers for faces
-      for (i = 0;i < 6;i++) 
-	if (vl2g[(*v1)->id].surface[i] < 0) {
-	  Face *f = (*v1)->face[i];
-	  /*  Face Index (logic behind numCoef_u/v)
-	   *  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
-	   *  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
-	   *  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
-	   */
-	  VolumePointer s_volume = spline_volumes_[f->volume[0]->id];
-	  int numCoeff_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2+mx;
-	  int numCoeff_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2+mx;
-	  int numCoeff    = numCoeff_u*numCoeff_v;
-	  
-	  for(iu = 0;iu < f->volume.size();iu++) {
-	    Volume *vol = f->volume[iu];
-	    int faceId  = f->face[iu];
-	    bool uv_flip   = f->uv_flip[iu];
-	    bool u_reverse = f->u_reverse[iu];
-	    bool v_reverse = f->v_reverse[iu];
-	    
-	    if(f->degen1 && f->degen2) {
-	      vector<int> corners = Vertex::getVertexEnumeration(faceId);
-	      vl2g[vol->id].surface[faceId]        = vl2g[vol->id].vertex[corners[0]];
-	      vl2g[vol->id].surface_incr_i[faceId] = 0;
-	      vl2g[vol->id].surface_incr_j[faceId] = 0;
-	    } 
-	    else if(f->degen1) {
-	      vector<int> lines = Line::getLineEnumeration(faceId);
-	      
-	      if(uv_flip) {
-		vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[0]];
-		vl2g[vol->id].surface_incr_i[faceId] = vl2g[vol->id].edge_incr[lines[0]];
-		vl2g[vol->id].surface_incr_j[faceId] = 0;
-	      } 
-	      else {
-		vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[2]];
-		vl2g[vol->id].surface_incr_i[faceId] = 0;
-		vl2g[vol->id].surface_incr_j[faceId] = vl2g[vol->id].edge_incr[lines[2]];
-	      }
-	    } 
-	    else if(f->degen2) {
-	      vector<int> lines = Line::getLineEnumeration(faceId);
-	      if(uv_flip) {
-		vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[2]];
-		vl2g[vol->id].surface_incr_i[faceId] = 0;
-		vl2g[vol->id].surface_incr_j[faceId] = vl2g[vol->id].edge_incr[lines[2]];
-	      } 
-	      else {
-		vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[0]];
-		vl2g[vol->id].surface_incr_i[faceId] = vl2g[vol->id].edge_incr[lines[0]];
-	      vl2g[vol->id].surface_incr_j[faceId] = 0;
-	      }
-	    } 
-	    else {
-	      if(!u_reverse && !v_reverse)
-		vl2g[vol->id].surface[faceId] = glob_i ;
-	      else if(u_reverse && v_reverse)
-		vl2g[vol->id].surface[faceId] = glob_i + numCoeff - 1;
-	      else if(v_reverse == uv_flip)
-		vl2g[vol->id].surface[faceId] = glob_i + numCoeff_u - 1;
-	      else // u_reverse == uv_flip
-		vl2g[vol->id].surface[faceId] = glob_i + numCoeff - numCoeff_u;
-	      
-	      if(uv_flip) {
-		vl2g[vol->id].surface_incr_i[faceId] = numCoeff_u;
-		vl2g[vol->id].surface_incr_j[faceId] = 1;
-	      } 
-	      else {
-		vl2g[vol->id].surface_incr_i[faceId] = 1;
-		vl2g[vol->id].surface_incr_j[faceId] = numCoeff_u;
-	      }
-	      if(u_reverse)
-		vl2g[vol->id].surface_incr_i[faceId] *= -1;
-	      if(v_reverse)
-		vl2g[vol->id].surface_incr_j[faceId] *= -1;
-	    }
-	  }
-	  
-	  if(!f->isDegen()) 
-	    glob_i += numCoeff;
-	}
-      
-      // Assign node numbers to volumes
-      VolumePointer s_volume = spline_volumes_[(*v1)->id];
-      int numCoeff_u = s_volume->numCoefs(0)-2+mx;
-      int numCoeff_v = s_volume->numCoefs(1)-2+mx;
-      int numCoeff_w = s_volume->numCoefs(2)-2+mx;
-      int numCoeff   = numCoeff_u * numCoeff_v * numCoeff_w;
-      if(numCoeff > 0) {
-	vl2g[(*v1)->id].volume = glob_i;
-	glob_i += numCoeff;
-      }
-    }
-  }
-  else {
-    vector<int>::iterator pos;
-    set<Face*>::iterator  f_it1, f_it2;
 
-    delete[] sl2g;
-    sl2g = new surfGlobNumber[spline_surfaces_.size()];
-    // Initialize all sl2g-variables
-    for (uint i = 0;i < spline_surfaces_.size();i++) {
-      for (int j = 0;j < 4;j++) {
-	sl2g[i].vertex[j] = -1;
-	sl2g[i].edge[j]   = -1;
-	sl2g[i].edge_incr[j] = 0;
-      }
-      sl2g[i].surface = -1;
-    }
-                
-    // Enumerate vertices, lines and finally surfaces, in that order
-    int glob_i = start;
-    
-    // Assign global node numbers for all spline volumes
-    for (f_it1 = topology->face_begin();f_it1 != topology->face_end();f_it1++) {
-      for (int i = 0;i < 4;i++) 
-	if (sl2g[(*f_it1)->id].vertex[i] < 0) {
-	  Vertex* v = (*f_it1)->corner[i];
-	  
-	  bool dup = false;
-	  int id   = glob_i;
-	  for (int j = 0;j < i;j++)
-	    if (v == (*f_it1)->corner[j]) {
-	      dup = true;
-	      id = sl2g[(*f_it1)->id].vertex[j];
-	      break;
-	    }
-	  
-	  for (f_it2 = topology->face_begin();f_it2 != topology->face_end();f_it2++) {
-	    vector<int> corners = (*f_it2)->getVertexEnumeration(v);
-	    for(pos = corners.begin(); pos != corners.end(); pos++)
-	      sl2g[(*f_it2)->id].vertex[*pos] = id;
-	  }
-	  
-	  if (!dup)
-	    glob_i++;
-	}
+		// Enumerate global nodes
+		int glob_i = start;
+		
+		// Assign global node numbers for all spline volumes
+		for (v1=topology->volume_begin();v1 != topology->volume_end();v1++) {
+			// Assign node numbers for vertices
+			for (i = 0;i < 8;i++) 
+				if (vl2g[(*v1)->id].vertex[i] < 0) {
+					Vertex* v = (*v1)->corner[i];
 
-      // Assign node numbers for edges
-      for (int e = 0;e < 4;e++)
-	if (sl2g[(*f_it1)->id].edge[e] < 0) {
-	  Line* l1 = (*f_it1)->line[e];
-	  
-	  vector<int> numb;
-	  vector<int> parDir;
-	  vector<int> parStep;
-	  Face *first_face = *(l1->face.begin());
-	  SurfacePointer sf = spline_surfaces_[first_face->id]; // this edge should have at least one face-connection
-	  first_face->getEdgeEnumeration(l1, numb, parDir, parStep);
-	  int numCoeffs = (parDir[0]==0) ? sf->numCoefs_u()-2+mx : sf->numCoefs_v()-2+mx; // coefs_here should be identical for all lines in all parDir, parStep);
-	  if(numCoeffs > 0) {
-	    for(f_it2 = l1->face.begin(); f_it2 != l1->face.end(); f_it2++) {
-	      (*f_it2)->getEdgeEnumeration(l1, numb, parDir, parStep); // no worries: numb, parDir & parStep all get cleaned inside function call before returned
-	      for(uint i=0; i<numb.size(); i++) {
-		if (l1->degen) {
-		  vector<int> corners = (*f_it2)->getVertexEnumeration(l1->v1);
-		  int corner_pos = corners[0]; // should be the same global number on all elements of "corners"
-		  sl2g[(*f_it2)->id].edge[numb[i]]      = sl2g[(*f_it2)->id].vertex[corner_pos];
-		  sl2g[(*f_it2)->id].edge_incr[numb[i]] = 0;
-		} else {
-		  sl2g[(*f_it2)->id].edge[numb[i]]      = (parStep[i]==1) ? glob_i : glob_i+numCoeffs-1;
-		  sl2g[(*f_it2)->id].edge_incr[numb[i]] =  parStep[i] ;
+					bool dup = false;
+					int id   = glob_i;
+					for (j = 0;j < i;j++)
+						if (v == (*v1)->corner[j]) {
+							dup = true;
+							id = vl2g[(*v1)->id].vertex[j];
+							break;
+					}
+
+					for (v2 = v->volume.begin();v2 != v->volume.end();v2++) {
+						vector<int> corners = (*v2)->getVertexEnumeration(v);
+						for(pos = corners.begin(); pos != corners.end(); pos++)
+							vl2g[(*v2)->id].vertex[*pos] = id;
+					}
+
+					if (!dup)
+						glob_i++;
+			}
+
+			// Assign node numbers for edges
+			for (e = 0;e < 12;e++) 
+				if (vl2g[(*v1)->id].edge[e] < 0) {
+					vector<int> edges, dir, step;
+
+					Line* l1 = (*v1)->line[e];
+					Volume *first_vol = *(l1->volume.begin());
+					VolumePointer sv = spline_volumes_[first_vol->id]; // this edge SHOULD have at least one volume-connection
+					first_vol->getEdgeEnumeration(l1, edges, dir, step);
+					int numCoeffs = sv->numCoefs(dir[0])-2+mx; // coefs_here SHOULD be identical for all lines in all volumes for this line
+
+					if(numCoeffs > 0) {
+						for (v2 = l1->volume.begin();v2 != l1->volume.end();v2++) {
+							(*v2)->getEdgeEnumeration(l1,edges,dir,step);
+
+							for(iu = 0;iu < edges.size();iu++) 
+								if(l1->degen) {
+									vector<int> corners = (*v2)->getVertexEnumeration(l1->v1);
+									int c0 = corners[0]; // should be the same global number on all elements of "corners"
+									vl2g[(*v2)->id].edge[edges[iu]]      = vl2g[(*v2)->id].vertex[c0];
+									vl2g[(*v2)->id].edge_incr[edges[iu]] = 0; 
+								} 
+								else {
+									vl2g[(*v2)->id].edge[edges[iu]]      = (step[iu]==1) ? glob_i : glob_i + numCoeffs - 1;
+									vl2g[(*v2)->id].edge_incr[edges[iu]] =  step[iu] ;
+								}
+						}
+					}
+
+					if( !(l1->degen) )
+						glob_i += numCoeffs;
+			}
+
+			// Assign node numbers for faces
+			for (i = 0;i < 6;i++) 
+				if (vl2g[(*v1)->id].surface[i] < 0) {
+					Face *f = (*v1)->face[i];
+					/*  Face Index (logic behind numCoef_u/v)
+					*  0-1 : surface umin/umax - numcCefs(1) X numCoefs(2)
+					*  2-3 : surface vmin/vmax - numcCefs(0) X numCoefs(2)
+					*  4-5 : surface wmin/wmax - numcCefs(0) X numCoefs(1)
+					*/
+					VolumePointer s_volume = spline_volumes_[f->volume[0]->id];
+					int numCoeff_u  = s_volume->numCoefs(  (f->face[0] < 2) ) - 2+mx;
+					int numCoeff_v  = s_volume->numCoefs(2-(f->face[0] > 3) ) - 2+mx;
+					int numCoeff    = numCoeff_u*numCoeff_v;
+					
+					for(iu = 0;iu < f->volume.size();iu++) {
+						Volume *vol = f->volume[iu];
+						int faceId  = f->face[iu];
+						bool uv_flip   = f->uv_flip[iu];
+						bool u_reverse = f->u_reverse[iu];
+						bool v_reverse = f->v_reverse[iu];
+						
+						if(f->degen1 && f->degen2) {
+							vector<int> corners = Vertex::getVertexEnumeration(faceId);
+							vl2g[vol->id].surface[faceId]        = vl2g[vol->id].vertex[corners[0]];
+							vl2g[vol->id].surface_incr_i[faceId] = 0;
+							vl2g[vol->id].surface_incr_j[faceId] = 0;
+						} 
+						else if(f->degen1) {
+							vector<int> lines = Line::getLineEnumeration(faceId);
+						
+							if(uv_flip) {
+								vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[0]];
+								vl2g[vol->id].surface_incr_i[faceId] = vl2g[vol->id].edge_incr[lines[0]];
+								vl2g[vol->id].surface_incr_j[faceId] = 0;
+							} 
+							else {
+								vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[2]];
+								vl2g[vol->id].surface_incr_i[faceId] = 0;
+								vl2g[vol->id].surface_incr_j[faceId] = vl2g[vol->id].edge_incr[lines[2]];
+							}
+						} 
+						else if(f->degen2) {
+							vector<int> lines = Line::getLineEnumeration(faceId);
+							if(uv_flip) {
+								vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[2]];
+								vl2g[vol->id].surface_incr_i[faceId] = 0;
+								vl2g[vol->id].surface_incr_j[faceId] = vl2g[vol->id].edge_incr[lines[2]];
+							} 
+							else {
+								vl2g[vol->id].surface[faceId]        = vl2g[vol->id].edge[lines[0]];
+								vl2g[vol->id].surface_incr_i[faceId] = vl2g[vol->id].edge_incr[lines[0]];
+								vl2g[vol->id].surface_incr_j[faceId] = 0;
+							}
+						} 
+						else {
+							if(!u_reverse && !v_reverse)
+								vl2g[vol->id].surface[faceId] = glob_i ;
+							else if(u_reverse && v_reverse)
+								vl2g[vol->id].surface[faceId] = glob_i + numCoeff - 1;
+							else if(v_reverse == uv_flip)
+								vl2g[vol->id].surface[faceId] = glob_i + numCoeff_u - 1;
+							else // u_reverse == uv_flip
+								vl2g[vol->id].surface[faceId] = glob_i + numCoeff - numCoeff_u;
+
+							if(uv_flip) {
+								vl2g[vol->id].surface_incr_i[faceId] = numCoeff_u;
+								vl2g[vol->id].surface_incr_j[faceId] = 1;
+							} 
+							else {
+								vl2g[vol->id].surface_incr_i[faceId] = 1;
+								vl2g[vol->id].surface_incr_j[faceId] = numCoeff_u;
+							}
+							if(u_reverse)
+								vl2g[vol->id].surface_incr_i[faceId] *= -1;
+							if(v_reverse)
+								vl2g[vol->id].surface_incr_j[faceId] *= -1;
+						}
+					}
+					
+					if(!f->isDegen()) 
+						glob_i += numCoeff;
+			}
+
+			// Assign node numbers to volumes
+			VolumePointer s_volume = spline_volumes_[(*v1)->id];
+			int numCoeff_u = s_volume->numCoefs(0)-2+mx;
+			int numCoeff_v = s_volume->numCoefs(1)-2+mx;
+			int numCoeff_w = s_volume->numCoefs(2)-2+mx;
+			int numCoeff   = numCoeff_u * numCoeff_v * numCoeff_w;
+			if(numCoeff > 0) {
+				vl2g[(*v1)->id].volume = glob_i;
+				glob_i += numCoeff;
+			}
 		}
-	      }
-	    }
-	    if( !l1->degen )
-	      glob_i += numCoeffs;
-	  }
 	}
-     
-      // Assign node numbers to surfaces
-      SurfacePointer s_surface = spline_surfaces_[(*f_it1)->id];
-      int numCoef_u = s_surface->numCoefs_u()-2+mx;
-      int numCoef_v = s_surface->numCoefs_v()-2+mx;
-      int numCoeffs = numCoef_u * numCoef_v;
-      if (numCoeffs > 0) {
-	sl2g[(*f_it1)->id].surface = glob_i;
-	glob_i += numCoeffs;
-      }
-    }
-  }
+	else {
+		vector<int>::iterator pos;
+		set<Face*>::iterator  f_it1, f_it2;
+
+		delete[] sl2g;
+		sl2g = new surfGlobNumber[spline_surfaces_.size()];
+		// Initialize all sl2g-variables
+		for (uint i = 0;i < spline_surfaces_.size();i++) {
+			for (int j = 0;j < 4;j++) {
+				sl2g[i].vertex[j] = -1;
+				sl2g[i].edge[j]   = -1;
+				sl2g[i].edge_incr[j] = 0;
+			}
+			sl2g[i].surface = -1;
+		}
+
+		// Enumerate vertices, lines and finally surfaces, in that order
+		int glob_i = start;
+
+		// Assign global node numbers for all spline volumes
+		for (f_it1 = topology->face_begin();f_it1 != topology->face_end();f_it1++) {
+			for (int i = 0;i < 4;i++) 
+				if (sl2g[(*f_it1)->id].vertex[i] < 0) {
+					Vertex* v = (*f_it1)->corner[i];
+	  
+					bool dup = false;
+					int id   = glob_i;
+					for (int j = 0;j < i;j++)
+						if (v == (*f_it1)->corner[j]) {
+							dup = true;
+							id = sl2g[(*f_it1)->id].vertex[j];
+							break;
+					}
+	  
+					for (f_it2 = topology->face_begin();f_it2 != topology->face_end();f_it2++) {
+						vector<int> corners = (*f_it2)->getVertexEnumeration(v);
+						for(pos = corners.begin(); pos != corners.end(); pos++)
+							sl2g[(*f_it2)->id].vertex[*pos] = id;
+					}
+	  
+					if (!dup)
+						glob_i++;
+			}
+
+			// Assign node numbers for edges
+			for (int e = 0;e < 4;e++)
+				if (sl2g[(*f_it1)->id].edge[e] < 0) {
+					Line* l1 = (*f_it1)->line[e];
+	  
+					vector<int> numb;
+					vector<int> parDir;
+					vector<int> parStep;
+					Face *first_face = *(l1->face.begin());
+					SurfacePointer sf = spline_surfaces_[first_face->id]; // this edge should have at least one face-connection
+					first_face->getEdgeEnumeration(l1, numb, parDir, parStep);
+					int numCoeffs = (parDir[0]==0) ? sf->numCoefs_u()-2+mx : sf->numCoefs_v()-2+mx; // coefs_here should be identical for all lines in all parDir, parStep);
+					if(numCoeffs > 0) {
+						for(f_it2 = l1->face.begin(); f_it2 != l1->face.end(); f_it2++) {
+							(*f_it2)->getEdgeEnumeration(l1, numb, parDir, parStep); // no worries: numb, parDir & parStep all get cleaned inside function call before returned
+							for(uint i=0; i<numb.size(); i++) {
+								if (l1->degen) {
+									vector<int> corners = (*f_it2)->getVertexEnumeration(l1->v1);
+									int corner_pos = corners[0]; // should be the same global number on all elements of "corners"
+									sl2g[(*f_it2)->id].edge[numb[i]]      = sl2g[(*f_it2)->id].vertex[corner_pos];
+									sl2g[(*f_it2)->id].edge_incr[numb[i]] = 0;
+								} else {
+									sl2g[(*f_it2)->id].edge[numb[i]]      = (parStep[i]==1) ? glob_i : glob_i+numCoeffs-1;
+									sl2g[(*f_it2)->id].edge_incr[numb[i]] =  parStep[i] ;
+								}
+							}
+						}
+						if( !l1->degen )
+							glob_i += numCoeffs;
+					}
+			}
+
+			// Assign node numbers to surfaces
+			SurfacePointer s_surface = spline_surfaces_[(*f_it1)->id];
+			int numCoef_u = s_surface->numCoefs_u()-2+mx;
+			int numCoef_v = s_surface->numCoefs_v()-2+mx;
+			int numCoeffs = numCoef_u * numCoef_v;
+			if (numCoeffs > 0) {
+				sl2g[(*f_it1)->id].surface = glob_i;
+				glob_i += numCoeffs;
+			}
+		}
+	}
 }
 
 
@@ -1220,258 +1220,258 @@ void SplineModel::writeGlobalNumberOrdering(std::ostream &os) const {
 
 void SplineModel::getGlobalNaturalNumbering(std::vector<std::vector<int> >& num) const
 {
-  this->getGlobalNumbering(num);
-  this->renumberNatural(num);
+	this->getGlobalNumbering(num);
+	this->renumberNatural(num);
 }
 
 
 void SplineModel::getGlobalNumbering(std::vector<std::vector<int> >& num) const
 {
-  if (volumetric_model)
-    getGlobalNumberingVolumes(num);
-  else
-    getGlobalNumberingSurfaces(num);
+	if (volumetric_model)
+		getGlobalNumberingVolumes(num);
+	else
+		getGlobalNumberingSurfaces(num);
 }
 
 
 void SplineModel::getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num) const
 {
-  size_t ns = spline_surfaces_.size();
-  num.resize(ns);
-  
-  for (size_t s = 0;s < ns;s++) {
-    size_t nx = spline_surfaces_[s]->numCoefs_u();
-    size_t ny = spline_surfaces_[s]->numCoefs_v();
-    num[s].resize(nx*ny);
-    
-    // Vertex numbers
-    num[s][0]         = sl2g[s].vertex[0];
-    num[s][nx-1]      = sl2g[s].vertex[1];
-    num[s][nx*(ny-1)] = sl2g[s].vertex[2];
-    num[s][nx*ny-1]   = sl2g[s].vertex[3];
+	size_t ns = spline_surfaces_.size();
+	num.resize(ns);
+	
+	for (size_t s = 0;s < ns;s++) {
+		size_t nx = spline_surfaces_[s]->numCoefs_u();
+		size_t ny = spline_surfaces_[s]->numCoefs_v();
+		num[s].resize(nx*ny);
+		
+		// Vertex numbers
+		num[s][0]         = sl2g[s].vertex[0];
+		num[s][nx-1]      = sl2g[s].vertex[1];
+		num[s][nx*(ny-1)] = sl2g[s].vertex[2];
+		num[s][nx*ny-1]   = sl2g[s].vertex[3];
 
-    // Edge numbers
-    int gnod = sl2g[s].edge[0];
-    int lnod = nx;
-    for (size_t i = 1;i < ny-1;i++) {
-      num[s][lnod] = gnod;
-      gnod +=  sl2g[s].edge_incr[0];
-      lnod += nx;
-    }
+		// Edge numbers
+		int gnod = sl2g[s].edge[0];
+		int lnod = nx;
+		for (size_t i = 1;i < ny-1;i++) {
+			num[s][lnod] = gnod;
+			gnod +=  sl2g[s].edge_incr[0];
+			lnod += nx;
+		}
 
-    gnod = sl2g[s].edge[1];
-    lnod = 2*nx-1;
-    for (size_t i = 1;i < ny-1;i++) {
-      num[s][lnod] = gnod;
-      gnod +=  sl2g[s].edge_incr[1];
-      lnod += nx;
-    }
+		gnod = sl2g[s].edge[1];
+		lnod = 2*nx-1;
+		for (size_t i = 1;i < ny-1;i++) {
+			num[s][lnod] = gnod;
+			gnod +=  sl2g[s].edge_incr[1];
+			lnod += nx;
+		}
 
-    gnod = sl2g[s].edge[2];
-    lnod = 1;
-    for (size_t i = 1;i < nx-1;i++) {
-      num[s][lnod++] = gnod;
-      gnod +=  sl2g[s].edge_incr[2];
-    }
+		gnod = sl2g[s].edge[2];
+		lnod = 1;
+		for (size_t i = 1;i < nx-1;i++) {
+			num[s][lnod++] = gnod;
+			gnod +=  sl2g[s].edge_incr[2];
+		}
 
-    gnod = sl2g[s].edge[3];
-    lnod = nx*(ny-1) + 1;
-    for (size_t i = 1;i < nx-1;i++) {
-      num[s][lnod++] = gnod;
-      gnod +=  sl2g[s].edge_incr[3];
-    }
+		gnod = sl2g[s].edge[3];
+		lnod = nx*(ny-1) + 1;
+		for (size_t i = 1;i < nx-1;i++) {
+			num[s][lnod++] = gnod;
+			gnod +=  sl2g[s].edge_incr[3];
+		}
 
-    // Face numbers
-    gnod = sl2g[s].surface;
-    int lnod2 = nx+1;
-    for (size_t j = 1;j < ny-1;j++, lnod2+=nx) {
-      lnod = lnod2;
-      for (size_t i = 1;i < nx-1;i++) 
+		// Face numbers
+		gnod = sl2g[s].surface;
+		int lnod2 = nx+1;
+		for (size_t j = 1;j < ny-1;j++, lnod2+=nx) {
+			lnod = lnod2;
+			for (size_t i = 1;i < nx-1;i++) 
 	num[s][lnod++] = gnod++;
-    }
-  }
+		}
+	}
 }
 
 
 void SplineModel::getGlobalNumberingVolumes(std::vector<std::vector<int> >& num) const
 {
-  size_t nv = spline_volumes_.size();
-  num.resize(nv);
-  
-  for (size_t v = 0;v < nv;v++) {
-    size_t nx = spline_volumes_[v]->numCoefs(0);
-    size_t ny = spline_volumes_[v]->numCoefs(1);
-    size_t nz = spline_volumes_[v]->numCoefs(2);
-    num[v].resize(nx*ny*nz);
+	size_t nv = spline_volumes_.size();
+	num.resize(nv);
+	
+	for (size_t v = 0;v < nv;v++) {
+		size_t nx = spline_volumes_[v]->numCoefs(0);
+		size_t ny = spline_volumes_[v]->numCoefs(1);
+		size_t nz = spline_volumes_[v]->numCoefs(2);
+		num[v].resize(nx*ny*nz);
 
-    // Vertex numbers
-    num[v][0]            = vl2g[v].vertex[0];
-    num[v][nx-1]         = vl2g[v].vertex[1];
-    num[v][nx*(ny-1)]    = vl2g[v].vertex[2];
-    num[v][nx*ny-1]      = vl2g[v].vertex[3];
-    size_t offset = nx*ny*(nz-1);
-    num[v][offset]           = vl2g[v].vertex[4];
-    num[v][offset+nx-1]      = vl2g[v].vertex[5];
-    num[v][offset+nx*(ny-1)] = vl2g[v].vertex[6];
-    num[v][offset+nx*ny-1]   = vl2g[v].vertex[7];
+		// Vertex numbers
+		num[v][0]            = vl2g[v].vertex[0];
+		num[v][nx-1]         = vl2g[v].vertex[1];
+		num[v][nx*(ny-1)]    = vl2g[v].vertex[2];
+		num[v][nx*ny-1]      = vl2g[v].vertex[3];
+		size_t offset = nx*ny*(nz-1);
+		num[v][offset]           = vl2g[v].vertex[4];
+		num[v][offset+nx-1]      = vl2g[v].vertex[5];
+		num[v][offset+nx*(ny-1)] = vl2g[v].vertex[6];
+		num[v][offset+nx*ny-1]   = vl2g[v].vertex[7];
 
-    // Edge numbers
-    int gnod = vl2g[v].edge[0];
-    int lnod = 1;
-    for (size_t i = 1;i < nx-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[0];
-    }
+		// Edge numbers
+		int gnod = vl2g[v].edge[0];
+		int lnod = 1;
+		for (size_t i = 1;i < nx-1;i++) {
+			num[v][lnod++] = gnod;
+			gnod +=  vl2g[v].edge_incr[0];
+		}
 
-    gnod = vl2g[v].edge[1];
-    lnod = nx*(ny-1) + 1;
-    for (size_t i = 1;i < nx-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[1];
-    }
+		gnod = vl2g[v].edge[1];
+		lnod = nx*(ny-1) + 1;
+		for (size_t i = 1;i < nx-1;i++) {
+			num[v][lnod++] = gnod;
+			gnod +=  vl2g[v].edge_incr[1];
+		}
 
-    gnod = vl2g[v].edge[2];
-    lnod = nx*ny*(nz-1) + 1;
-    for (size_t i = 1;i < nx-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[2];
-    }
+		gnod = vl2g[v].edge[2];
+		lnod = nx*ny*(nz-1) + 1;
+		for (size_t i = 1;i < nx-1;i++) {
+			num[v][lnod++] = gnod;
+			gnod +=  vl2g[v].edge_incr[2];
+		}
 
-    gnod = vl2g[v].edge[3];
-    lnod = nx*ny*(nz-1) + nx*(ny-1) + 1;
-    for (size_t i = 1;i < nx-1;i++) {
-      num[v][lnod++] = gnod;
-      gnod +=  vl2g[v].edge_incr[3];
-    }
+		gnod = vl2g[v].edge[3];
+		lnod = nx*ny*(nz-1) + nx*(ny-1) + 1;
+		for (size_t i = 1;i < nx-1;i++) {
+			num[v][lnod++] = gnod;
+			gnod +=  vl2g[v].edge_incr[3];
+		}
 
-    gnod = vl2g[v].edge[4];
-    lnod = nx;
-    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+= vl2g[v].edge_incr[4]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[4];
+		lnod = nx;
+		for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+= vl2g[v].edge_incr[4]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[5];
-    lnod = 2*nx-1;
-    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[5]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[5];
+		lnod = 2*nx-1;
+		for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[5]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[6];
-    lnod = nx*ny*(nz-1) + nx;
-    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[6]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[6];
+		lnod = nx*ny*(nz-1) + nx;
+		for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[6]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[7];
-    lnod = nx*ny*(nz-1) + 2*nx-1;
-    for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[7]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[7];
+		lnod = nx*ny*(nz-1) + 2*nx-1;
+		for (size_t i = 1;i < ny-1;i++, lnod+=nx, gnod+=vl2g[v].edge_incr[7]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[8];
-    lnod = nx*ny;
-    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[8]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[8];
+		lnod = nx*ny;
+		for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[8]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[9];
-    lnod = nx*ny + nx-1;
-    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[9]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[9];
+		lnod = nx*ny + nx-1;
+		for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[9]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[10];
-    lnod = nx*(2*ny-1);
-    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[10]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[10];
+		lnod = nx*(2*ny-1);
+		for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[10]) 
+			num[v][lnod] = gnod;
 
-    gnod = vl2g[v].edge[11];
-    lnod = 2*nx*ny-1;
-    for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[11]) 
-      num[v][lnod] = gnod;
+		gnod = vl2g[v].edge[11];
+		lnod = 2*nx*ny-1;
+		for (size_t i = 1;i < nz-1;i++, lnod+=nx*ny, gnod+=vl2g[v].edge_incr[11]) 
+			num[v][lnod] = gnod;
 
-    // Faces
-    int gnod2 = vl2g[v].surface[0];
-    int lnod2 = nx*(ny+1);
-    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[0]) {
-      lnod = lnod2;
-      gnod = gnod2;
-      for (size_t j = 1;j < ny-1;j++, lnod+=nx, gnod+=vl2g[v].surface_incr_i[0]) 
-	num[v][lnod] = gnod;
-    }
+		// Faces
+		int gnod2 = vl2g[v].surface[0];
+		int lnod2 = nx*(ny+1);
+		for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[0]) {
+			lnod = lnod2;
+			gnod = gnod2;
+			for (size_t j = 1;j < ny-1;j++, lnod+=nx, gnod+=vl2g[v].surface_incr_i[0]) 
+				num[v][lnod] = gnod;
+		}
 
-    gnod2 = vl2g[v].surface[1];
-    lnod2 = nx*ny + 2*nx-1;;
-    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[1]) {
-      lnod = lnod2;
-      gnod = gnod2;
-      for (size_t j = 1;j < ny-1;j++, lnod+=nx, gnod+=vl2g[v].surface_incr_i[1]) 
-	num[v][lnod] = gnod;
-    }
+		gnod2 = vl2g[v].surface[1];
+		lnod2 = nx*ny + 2*nx-1;;
+		for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[1]) {
+			lnod = lnod2;
+			gnod = gnod2;
+			for (size_t j = 1;j < ny-1;j++, lnod+=nx, gnod+=vl2g[v].surface_incr_i[1]) 
+				num[v][lnod] = gnod;
+		}
 
-    gnod2 = vl2g[v].surface[2];
-    lnod2 = nx*ny + 1;;
-    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[2]) {
-      lnod = lnod2;
-      gnod = gnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[2]) 
-	num[v][lnod] = gnod;
-    }
+		gnod2 = vl2g[v].surface[2];
+		lnod2 = nx*ny + 1;;
+		for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[2]) {
+			lnod = lnod2;
+			gnod = gnod2;
+			for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[2]) 
+				num[v][lnod] = gnod;
+		}
 
-    gnod2 = vl2g[v].surface[3];
-    lnod2 = nx*ny + nx*(ny-1)+1;;
-    for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[3]) {
-      lnod = lnod2;
-      gnod = gnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[3]) 
-	num[v][lnod] = gnod;
-    }
+		gnod2 = vl2g[v].surface[3];
+		lnod2 = nx*ny + nx*(ny-1)+1;;
+		for (size_t k = 1;k < nz-1;k++, lnod2+=nx*ny, gnod2+=vl2g[v].surface_incr_j[3]) {
+			lnod = lnod2;
+			gnod = gnod2;
+			for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[3]) 
+				num[v][lnod] = gnod;
+		}
 
-    gnod2 = vl2g[v].surface[4];
-    lnod2 = nx + 1;;
-    for (size_t j = 1;j < ny-1;j++, lnod2+=nx, gnod2+=vl2g[v].surface_incr_j[4]) {
-      lnod = lnod2;
-      gnod = gnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[4]) 
-	num[v][lnod] = gnod;
-    }
+		gnod2 = vl2g[v].surface[4];
+		lnod2 = nx + 1;;
+		for (size_t j = 1;j < ny-1;j++, lnod2+=nx, gnod2+=vl2g[v].surface_incr_j[4]) {
+			lnod = lnod2;
+			gnod = gnod2;
+			for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[4]) 
+				num[v][lnod] = gnod;
+		}
 
-    gnod2 = vl2g[v].surface[5];
-    lnod2 = nx*ny*(nz-1)+nx+1;;
-    for (size_t j = 1;j < ny-1;j++, lnod2+=nx, gnod2+= vl2g[v].surface_incr_j[5]) {
-      lnod = lnod2;
-      gnod = gnod2;
-      for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[5]) 
-	num[v][lnod] = gnod;
-    }
+		gnod2 = vl2g[v].surface[5];
+		lnod2 = nx*ny*(nz-1)+nx+1;;
+		for (size_t j = 1;j < ny-1;j++, lnod2+=nx, gnod2+= vl2g[v].surface_incr_j[5]) {
+			lnod = lnod2;
+			gnod = gnod2;
+			for (size_t i = 1;i < nx-1;i++, lnod++, gnod+=vl2g[v].surface_incr_i[5]) 
+				num[v][lnod] = gnod;
+		}
 
-    // Interior nodes
-    gnod  = vl2g[v].volume;
-    int lnod3 = nx*ny + nx + 1;
-    for (size_t k = 1;k < nz-1;k++, lnod3+=nx*ny) {
-      lnod2 = lnod3;
-      for (size_t j = 1;j < ny-1;j++, lnod2+=nx) {
-	lnod = lnod2;
-	for (size_t i = 1;i < nx-1;i++) 
-	  num[v][lnod++] = gnod++;
-      }
-    }
-  }
+		// Interior nodes
+		gnod  = vl2g[v].volume;
+		int lnod3 = nx*ny + nx + 1;
+		for (size_t k = 1;k < nz-1;k++, lnod3+=nx*ny) {
+			lnod2 = lnod3;
+			for (size_t j = 1;j < ny-1;j++, lnod2+=nx) {
+				lnod = lnod2;
+				for (size_t i = 1;i < nx-1;i++) 
+				num[v][lnod++] = gnod++;
+			}
+		}
+	}
 }
 
 
 
 void SplineModel::renumberNatural(std::vector<std::vector<int> >& num) const
 {
-  size_t ns = num.size();
+	size_t ns = num.size();
 
-  size_t nnod = *std::max_element(num[ns-1].begin(),num[ns-1].end()) + 1;
-  std::vector<int> gnum;
-  gnum.resize(nnod,-1);
-  
-  int gnod = 0;
-  for (size_t s = 0;s < ns;s++) 
-    for (size_t i = 0;i < num[s].size();i++) {
-      size_t node = num[s][i];
-      if (gnum[node] > -1)
-	num[s][i] = gnum[node];
-      else 
-	num[s][i] = gnum[node] = gnod++;
-    }
+	size_t nnod = *std::max_element(num[ns-1].begin(),num[ns-1].end()) + 1;
+	std::vector<int> gnum;
+	gnum.resize(nnod,-1);
+	
+	int gnod = 0;
+	for (size_t s = 0;s < ns;s++) 
+		for (size_t i = 0;i < num[s].size();i++) {
+			size_t node = num[s][i];
+			if (gnum[node] > -1)
+				num[s][i] = gnum[node];
+			else 
+				num[s][i] = gnum[node] = gnod++;
+		}
 }
 
 
