@@ -576,9 +576,11 @@ FaceSet TopologySet::getBoundaryFaces() {
 	FaceSet results;
 	FaceSet::iterator it;
 	if(volumetric_model) {
-		for(it=face_.begin(); it != face_.end(); it++)
-			if((*it)->volume.size() == 1)
-				results.insert(*it);
+		for(it=face_.begin(); it != face_.end(); it++) 
+			if((*it)->volume.size() == 1) // faces neighbouring only one volume are on edges
+				if(! (*it)->isDegen())   // skip completely degenerate faces
+					if((*it)->volume[0]->getSurfaceEnumeration(*it).size() == 1) // periodic patch faces are not part of boundary 
+						results.insert(*it);
 	} else if(surface_model) {
 		results = face_;
 	}

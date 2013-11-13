@@ -61,8 +61,9 @@ class SplineModel {
 
 		// common get-functions
 		TopologySet *getTopology();
-		std::vector<VolumePointer> &getSplineVolumes();
-		std::vector<SurfacePointer> &getSplineSurfaces();
+		std::vector<VolumePointer>&   getSplineVolumes();
+		std::vector<SurfacePointer>&  getSplineSurfaces();
+		int  getNumbPatches() const { return ((volumetric_model)?spline_volumes_.size():spline_surfaces_.size()); };
 		
 		// model geometry functions
 		void setTopologyTolerance(double tol);
@@ -71,6 +72,11 @@ class SplineModel {
 		// local-to-global mapping functions
 		void generateGlobalNumbers();
 		void generateGlobalNumbersPETSc(bool mixed = false, int iStart = 0);
+		int  getGlobalNumber(int patch, int u, int v, int w=-1) const;
+		int  getNumbPts(int patch, int parDir) const;
+		void getTesselation(std::vector<Go::Point>& pts,
+		                    std::vector<std::vector<int> >& elements,
+		                    std::vector<std::vector<int> >& bndry, int nEv, bool uniform=false);
 
 		// refinement schemes
 		void knot_insert(int patchId, int parDir, double knot);
@@ -114,6 +120,7 @@ class SplineModel {
 
 		void getGlobalNumberingSurfaces(std::vector<std::vector<int> >& num) const;
 		void getGlobalNumberingVolumes(std::vector<std::vector<int> >& num) const;
+		int  makeEnumerations();
 };
 
 #endif
