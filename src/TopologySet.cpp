@@ -558,17 +558,25 @@ std::set<Vertex*> TopologySet::getBoundaryVertices() {
 
 /*! \brief fetch all lines on the boundary of the model */
 std::set<Line*> TopologySet::getBoundaryLines() {
-	// if(volumetric_model)
+	set<Line*>   line;
+	if(volumetric_model) {
 		set<Vertex*> vert;
-		set<Line*>   line;
-		FaceSet   face;
+		FaceSet      face;
 		getBoundaries(vert, line, face);
-		return line;
-	// } else if(surface_model) {
-	//	set<Line*>   line;
-	//	set<Line*>::iterator it;
-	//	return line;
-	// }
+	} else if(surface_model) {
+		set<Line*>   line;
+		for(Line* l : line_) {
+			if(!l->degen && l->face.size() == 1) { 
+				vector<int> numb,dir,step;
+				Face* f = *l->face.begin();
+				f->getEdgeEnumeration(l, numb,dir,step);
+				if(numb.size() == 1) // don't inlcude singlepatch periodic lines
+					line.insert(l);
+			}
+			   
+		}
+	}
+	return line;
 }
 
 /*! \brief fetch all faces on the boundary of the model */
@@ -596,11 +604,6 @@ FaceSet TopologySet::getBoundaryFaces() {
  * An optimized version to get all boundaries. This is faster than sequentially calling
  * getBoundaryVertices(),getBoundaryLines() and getBoundaryFaces().
  *
- * \note that in a very special case (i.e. single-volume pawn), this method may give
- *       degenerated internal faces as "boundaries" even if they are completely contained
- *       inside the model. This is because they are only neighbouring one volume and is as
- *       such considered on the boundary. This will in turn give wrong internal lines and
- *       vertices as well.
  *************************************************************************************/
 void TopologySet::getBoundaries(std::set<Vertex*>& vertices, std::set<Line*>& lines, FaceSet& faces) {
 	faces.clear();
