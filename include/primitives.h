@@ -35,6 +35,7 @@ class Volume {
 		Face   *face[6];
 		int    id;
 		const char* material_code; //!< Material properties
+		int numPoints[3]; //!< Enumeration points in the all three parametric  directions
 };
 
 /**********************************************************************************//**
@@ -73,6 +74,7 @@ class Face : public Go::Streamable {
 
 		int    id;
 		const char* bc_code;      //!< Boundary condition code
+		int numPoints[2]; //!< Enumeration points in the all three parametric directions (only used for surface models)
 };
 
 /**********************************************************************************//**

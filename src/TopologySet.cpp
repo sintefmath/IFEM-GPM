@@ -70,8 +70,8 @@ TopologySet::~TopologySet() {
  * \param tol absolute tolerance given in euclidean distance measured for each controlpoint
  *
  *************************************************************************************/
- void TopologySet::setTolerance(double tol) {
- 	this->tol = tol;
+void TopologySet::setTolerance(double tol) {
+	this->tol = tol;
 	buildTopology();
 }
 
@@ -82,121 +82,121 @@ TopologySet::~TopologySet() {
  *
  *************************************************************************************/
 void TopologySet::setPeriodic(int dir) {
-  if (dir > 2) {
-    cerr << "Topology::setPeriodic: dir > 2 not possible" << endl;    
-    return;
-  }
-  else if ((dir > 1) && !volumetric_model) {
-    cerr << "Topology::setPeriodic: dir > 1 not possible for surface model" << endl;   
-    return;
-  }
-
-  // Find min/max coordinate for the diven direction
-  double min = 1.0e20;
-  double max = -1.0e20;
-
-  std::vector<VolumePointer>::iterator vit;
-  std::vector<SurfacePointer>::iterator sit;
-
-  std::vector<double>::iterator start;
-  std::vector<double>::iterator end;
-  std::vector<double>::iterator coef; 
-
-  // Find min and max coordinates
-  if(volumetric_model)
-    for (vit=spline_volumes_.begin();vit != spline_volumes_.end();vit++) {
-      int dim = (*vit)->dimension();
-      
-      if ((*vit)->rational()) {
-	dim++;
-
-	start = (*vit)->rcoefs_begin();
-	end   = (*vit)->rcoefs_end();
-      }
-      else {
-	start = (*vit)->coefs_begin();
-	end   = (*vit)->coefs_end();
-      }
-
-      for (coef = start;coef != end;coef += dim) {
-	double val = *(coef+dir);
-	
-	if (val < min)      
-	  min = val;
-	else if (val > max) 
-	  max = val;
-      }
-    }
-  else  // Surface spline
-    for (sit=spline_surfaces_.begin();sit != spline_surfaces_.end();sit++) {
-      int dim = (*sit)->dimension();
-      
-      if ((*sit)->rational()) {
-	dim++;
-	
-	start = (*sit)->rcoefs_begin();
-	end   = (*sit)->rcoefs_end();
-      }
-      else {
-	start = (*sit)->coefs_begin();
-	end   = (*sit)->coefs_end();
-      }
-      
-      for (coef = start;coef != end;coef += dim) {
-	double val = *(coef+dir);
-	
-	if (val < min)      
-	  min = val;
-	else if (val > max) 
-	  max = val;
-      }
-    }    
-
-  // Set max coordinate equal to min coordinate
-    if(volumetric_model) 
-    for (vit=spline_volumes_.begin();vit != spline_volumes_.end();vit++) {
-      int dim = (*vit)->dimension();
-
-      if ((*vit)->rational()) {
-	dim++;
-
-	start = (*vit)->rcoefs_begin();
-	end   = (*vit)->rcoefs_end();
-      }
-      else {
-	start = (*vit)->coefs_begin();
-	end   = (*vit)->coefs_end();
-      }
-
-      for (coef = start;coef != end;coef += dim) {
-	double val = *(coef+dir);
-	
-	if (fabs(max-val) < tol)      
-	  *(coef+dir) = min;
-      }
-    }
-    else  // Surface spline
-      for (sit=spline_surfaces_.begin();sit != spline_surfaces_.end();sit++) {
-	int dim = (*sit)->dimension();
-	
-	if ((*sit)->rational()) {
-	  dim++;
-	  
-	  start = (*sit)->rcoefs_begin();
-	  end   = (*sit)->rcoefs_end();
+	if (dir > 2) {
+		cerr << "Topology::setPeriodic: dir > 2 not possible" << endl;    
+		return;
 	}
-	else {
-	  start = (*sit)->coefs_begin();
-	  end   = (*sit)->coefs_end();
+	else if ((dir > 1) && !volumetric_model) {
+		cerr << "Topology::setPeriodic: dir > 1 not possible for surface model" << endl;   
+		return;
 	}
-	
-	for (coef = start;coef != end;coef += dim) {
-	  double val = *(coef+dir);
-	  
-	  if (fabs(max-val) < tol)      
-	    *(coef+dir) = min;
-	}
-      }       
+
+	// Find min/max coordinate for the diven direction
+	double min = 1.0e20;
+	double max = -1.0e20;
+
+	std::vector<VolumePointer>::iterator vit;
+	std::vector<SurfacePointer>::iterator sit;
+
+	std::vector<double>::iterator start;
+	std::vector<double>::iterator end;
+	std::vector<double>::iterator coef; 
+
+	// Find min and max coordinates
+	if(volumetric_model)
+		for (vit=spline_volumes_.begin();vit != spline_volumes_.end();vit++) {
+			int dim = (*vit)->dimension();
+			
+			if ((*vit)->rational()) {
+				dim++;
+
+				start = (*vit)->rcoefs_begin();
+				end   = (*vit)->rcoefs_end();
+			}
+			else {
+				start = (*vit)->coefs_begin();
+				end   = (*vit)->coefs_end();
+			}
+
+			for (coef = start;coef != end;coef += dim) {
+				double val = *(coef+dir);
+				
+				if (val < min)      
+					min = val;
+				else if (val > max) 
+					max = val;
+			}
+		}
+	else  // Surface spline
+		for (sit=spline_surfaces_.begin();sit != spline_surfaces_.end();sit++) {
+			int dim = (*sit)->dimension();
+			
+			if ((*sit)->rational()) {
+				dim++;
+				
+				start = (*sit)->rcoefs_begin();
+				end   = (*sit)->rcoefs_end();
+			}
+			else {
+				start = (*sit)->coefs_begin();
+				end   = (*sit)->coefs_end();
+			}
+			
+			for (coef = start;coef != end;coef += dim) {
+				double val = *(coef+dir);
+				
+				if (val < min)      
+					min = val;
+				else if (val > max) 
+					max = val;
+			}
+		}    
+
+	// Set max coordinate equal to min coordinate
+		if(volumetric_model) 
+		for (vit=spline_volumes_.begin();vit != spline_volumes_.end();vit++) {
+			int dim = (*vit)->dimension();
+
+			if ((*vit)->rational()) {
+				dim++;
+
+				start = (*vit)->rcoefs_begin();
+				end   = (*vit)->rcoefs_end();
+			}
+			else {
+				start = (*vit)->coefs_begin();
+				end   = (*vit)->coefs_end();
+			}
+
+			for (coef = start;coef != end;coef += dim) {
+				double val = *(coef+dir);
+				
+				if (fabs(max-val) < tol)      
+					*(coef+dir) = min;
+			}
+		}
+		else  // Surface spline
+			for (sit=spline_surfaces_.begin();sit != spline_surfaces_.end();sit++) {
+				int dim = (*sit)->dimension();
+				
+				if ((*sit)->rational()) {
+					dim++;
+					
+					start = (*sit)->rcoefs_begin();
+					end   = (*sit)->rcoefs_end();
+				}
+				else {
+					start = (*sit)->coefs_begin();
+					end   = (*sit)->coefs_end();
+				}
+				
+				for (coef = start;coef != end;coef += dim) {
+					double val = *(coef+dir);
+					
+					if (fabs(max-val) < tol)      
+					  *(coef+dir) = min;
+				}
+			}       
 }
 
 
@@ -267,7 +267,7 @@ void TopologySet::buildTopology(std::vector<bool>* periodic) {
 				for(int v=0; v<2; v++) {
 					for(int u=0; u<2; u++) {
 						int coefNmb = u*(n1-1) + v*n1*(n2-1) + w*n1*n2*(n3-1);
-                                                Go::Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
+						Go::Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
 
 						if(rat)
 							for(int aa=0; aa<dim+rat; aa++)
@@ -402,7 +402,7 @@ void TopologySet::buildTopology(std::vector<bool>* periodic) {
 			for(int v=0; v<2; v++) {
 				for(int u=0; u<2; u++) {
 					int coefNmb = u*(n1-1) + v*n1*(n2-1);
-                                        Go::Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
+					Go::Point p(coef+(coefNmb*(dim+rat)), coef+((coefNmb+1)*(dim+rat)));
 
 					if(rat)
 						for(int aa=0; aa<dim+rat; aa++)
@@ -558,17 +558,25 @@ std::set<Vertex*> TopologySet::getBoundaryVertices() {
 
 /*! \brief fetch all lines on the boundary of the model */
 std::set<Line*> TopologySet::getBoundaryLines() {
-	// if(volumetric_model)
+	set<Line*>   line;
+	if(volumetric_model) {
 		set<Vertex*> vert;
-		set<Line*>   line;
-		FaceSet   face;
+		FaceSet      face;
 		getBoundaries(vert, line, face);
-		return line;
-	// } else if(surface_model) {
-	//	set<Line*>   line;
-	//	set<Line*>::iterator it;
-	//	return line;
-	// }
+	} else if(surface_model) {
+		set<Line*>   line;
+		for(Line* l : line_) {
+			if(!l->degen && l->face.size() == 1) { 
+				vector<int> numb,dir,step;
+				Face* f = *l->face.begin();
+				f->getEdgeEnumeration(l, numb,dir,step);
+				if(numb.size() == 1) // don't inlcude singlepatch periodic lines
+					line.insert(l);
+			}
+			   
+		}
+	}
+	return line;
 }
 
 /*! \brief fetch all faces on the boundary of the model */
@@ -576,9 +584,11 @@ FaceSet TopologySet::getBoundaryFaces() {
 	FaceSet results;
 	FaceSet::iterator it;
 	if(volumetric_model) {
-		for(it=face_.begin(); it != face_.end(); it++)
-			if((*it)->volume.size() == 1)
-				results.insert(*it);
+		for(it=face_.begin(); it != face_.end(); it++) 
+			if((*it)->volume.size() == 1) // faces neighbouring only one volume are on edges
+				if(! (*it)->isDegen())   // skip completely degenerate faces
+					if((*it)->volume[0]->getSurfaceEnumeration(*it).size() == 1) // periodic patch faces are not part of boundary 
+						results.insert(*it);
 	} else if(surface_model) {
 		results = face_;
 	}
@@ -594,11 +604,6 @@ FaceSet TopologySet::getBoundaryFaces() {
  * An optimized version to get all boundaries. This is faster than sequentially calling
  * getBoundaryVertices(),getBoundaryLines() and getBoundaryFaces().
  *
- * \note that in a very special case (i.e. single-volume pawn), this method may give
- *       degenerated internal faces as "boundaries" even if they are completely contained
- *       inside the model. This is because they are only neighbouring one volume and is as
- *       such considered on the boundary. This will in turn give wrong internal lines and
- *       vertices as well.
  *************************************************************************************/
 void TopologySet::getBoundaries(std::set<Vertex*>& vertices, std::set<Line*>& lines, FaceSet& faces) {
 	faces.clear();

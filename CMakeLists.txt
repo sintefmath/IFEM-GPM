@@ -75,6 +75,10 @@ FILE(GLOB_RECURSE enforceRHS_SRCS ${PROJECT_SOURCE_DIR}/src/main_enforceRHS.cpp)
 ADD_EXECUTABLE(enforceRHS ${enforceRHS_SRCS})
 TARGET_LINK_LIBRARIES(enforceRHS GPM ${DEPLIBS})
 
+FILE(GLOB_RECURSE convert_SRCS ${PROJECT_SOURCE_DIR}/src/main_convert.cpp)
+ADD_EXECUTABLE(convert ${convert_SRCS})
+TARGET_LINK_LIBRARIES(convert GPM ${DEPLIBS})
+
 FILE(GLOB_RECURSE orderElevation_SRCS ${PROJECT_SOURCE_DIR}/src/main_orderElevation.cpp)
 ADD_EXECUTABLE(orderElevation ${orderElevation_SRCS})
 TARGET_LINK_LIBRARIES(orderElevation ${DEPLIBS})
@@ -118,6 +122,7 @@ ELSE(WIN32)
   INSTALL(TARGETS orderElevation DESTINATION bin COMPONENT bin)
   INSTALL(TARGETS orderReduction DESTINATION bin COMPONENT bin)
   INSTALL(TARGETS raiseOrder DESTINATION bin COMPONENT bin)
+  INSTALL(TARGETS convert DESTINATION bin COMPONENT bin)
 
   # headers
   FILE(GLOB_RECURSE GPM_HEADERS include/*.h)
