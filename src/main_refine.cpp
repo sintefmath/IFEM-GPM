@@ -148,6 +148,9 @@ int main(int argc, char **argv) {
 
 	if(tol > 0)
 		model.setTopologyTolerance(tol);
+
+	if(model.getNumbPatches() == 1)
+		eff_patch = 0;
 	
 	if(glob_refine && local_refine) {
 		cerr << "Can't both perform local and global refinements\n";
@@ -200,8 +203,23 @@ int main(int argc, char **argv) {
 			}
 		} else {
 			if(hrefDir > -1) {
-				model.knot_insert(eff_patch, hrefDir, hrefKnot[0]);
+				for(vector<double>::iterator it=hrefKnot.begin(); it!=hrefKnot.end(); it++)
+					model.knot_insert(eff_patch, hrefDir, *it);
 			}
+
+			if(prefAmount > 0) {
+				if(model.getNumbPatches() == 1) {
+					if(prefDir==-1 || prefDir == 0 )
+						model.getSplineVolumes()[0]->raiseOrder(prefAmount,0,0);
+					if(prefDir==-1 || prefDir == 1 )
+						model.getSplineVolumes()[0]->raiseOrder(0,prefAmount, 0);
+					if(prefDir==-1 || prefDir == 2 )
+						model.getSplineVolumes()[0]->raiseOrder(0,0,prefAmount);
+				} else {
+					cerr << "Warning: propegation of degree elevation to keep consistent model not implemented. No elevation performed\n";
+				}
+			}
+
 			if(edge > -1) {
 				model.boundary_layer_refinement(eff_patch, edge/2, 1-edge%2, r, nBoundary);
 			}
@@ -266,7 +284,18 @@ int main(int argc, char **argv) {
 			}
 		} else {
 			if(hrefDir > -1) {
-				model.knot_insert(eff_patch, hrefDir, hrefKnot[0]);
+				for(vector<double>::iterator it=hrefKnot.begin(); it!=hrefKnot.end(); it++)
+					model.knot_insert(eff_patch, hrefDir, *it);
+			}
+			if(prefAmount > 0) {
+				if(model.getNumbPatches() == 1) {
+					if(prefDir==-1 || prefDir == 0 )
+						model.getSplineSurfaces()[0]->raiseOrder(prefAmount,0);
+					if(prefDir==-1 || prefDir == 1 )
+						model.getSplineSurfaces()[0]->raiseOrder(0,prefAmount);
+				} else {
+					cerr << "Warning: propegation of degree elevation to keep consistent model not implemented. No elevation performed\n";
+				}
 			}
 			if(edge > -1) {
 				model.boundary_layer_refinement(eff_patch, 1-edge/2, 1-edge%2, r, nBoundary);
