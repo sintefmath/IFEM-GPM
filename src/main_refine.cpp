@@ -16,8 +16,6 @@
 
 #include <GoTools/trivariate/SplineVolume.h>
 
-typedef unsigned int uint;
-
 using namespace std;
 using namespace Go;
 
@@ -176,13 +174,13 @@ int main(int argc, char **argv) {
 				}
 			}
 
-			for(uint i=0; i<volumes.size(); i++) {
+			for(size_t i=0; i<volumes.size(); i++) {
 				if(uniform_u || uniform_v || uniform_w) {
 					vector<double> uniqueKnots;
 					for(int dir=0; dir<3; dir++) {
 						uniqueKnots.clear();
 						volumes[i]->basis(dir).knotsSimple(uniqueKnots);
-						for(uint j=0; j<uniqueKnots.size()-1; j++)
+						for(size_t j=0; j<uniqueKnots.size()-1; j++)
 							for(int k=0; k<hrefN; k++)
 								volumes[i]->insertKnot(dir, uniqueKnots[j]*(k+1)/(hrefN+1) + uniqueKnots[j+1]*(hrefN-k)/(hrefN+1));
 					}
@@ -226,7 +224,7 @@ int main(int argc, char **argv) {
 			if(uniform_u) {
 				vector<double> uniqueKnots_u;
 				volumes[eff_patch]->basis(0).knotsSimple(uniqueKnots_u);
-				for(uint j=0; j<uniqueKnots_u.size()-1; j++)
+				for(size_t j=0; j<uniqueKnots_u.size()-1; j++)
 					for(int k=0; k<hrefN; k++)
 						model.knot_insert(eff_patch, 0, uniqueKnots_u[j]*(k+1)/(hrefN+1) + uniqueKnots_u[j+1]*(hrefN-k)/(hrefN+1));
 							
@@ -234,14 +232,14 @@ int main(int argc, char **argv) {
 			if(uniform_v) {
 				vector<double> uniqueKnots_v;
 				volumes[eff_patch]->basis(1).knotsSimple(uniqueKnots_v);
-				for(uint j=0; j<uniqueKnots_v.size()-1; j++)
+				for(size_t j=0; j<uniqueKnots_v.size()-1; j++)
 					for(int k=0; k<hrefN; k++)
 						model.knot_insert(eff_patch, 1, uniqueKnots_v[j]*(k+1)/(hrefN+1) + uniqueKnots_v[j+1]*(hrefN-k)/(hrefN+1));
 			}
 			if(uniform_w) {
 				vector<double> uniqueKnots_w;
 				volumes[eff_patch]->basis(2).knotsSimple(uniqueKnots_w);
-				for(uint j=0; j<uniqueKnots_w.size()-1; j++)
+				for(size_t j=0; j<uniqueKnots_w.size()-1; j++)
 					for(int k=0; k<hrefN; k++)
 						model.knot_insert(eff_patch, 2, uniqueKnots_w[j]*(k+1)/(hrefN+1) + uniqueKnots_w[j+1]*(hrefN-k)/(hrefN+1));
 			}
@@ -249,18 +247,18 @@ int main(int argc, char **argv) {
 	} else {
 		vector<shared_ptr<SplineSurface> > surfaces = model.getSplineSurfaces();
 		if(eff_patch==-1) {
-			for(uint i=0; i<surfaces.size(); i++) {
+			for(size_t i=0; i<surfaces.size(); i++) {
 				if(uniform_u || uniform_v) {
 					if(!(uniform_u && uniform_v)) // specified global uniform reffinement in one parametric direction
 						cerr << "WARNING: global uniform refinement in one direction is not guaranteed to give a consistent model back, due to potential local orientations. Uniform refinement in all parametric directions was performed\n";
 					vector<double> uniqueKnots_u;
 					surfaces[i]->basis_u().knotsSimple(uniqueKnots_u);
-					for(uint j=0; j<uniqueKnots_u.size()-1; j++)
+					for(size_t j=0; j<uniqueKnots_u.size()-1; j++)
 						for(int k=0; k<hrefN; k++)
 							surfaces[i]->insertKnot_u(uniqueKnots_u[j]*(k+1)/(hrefN+1) + uniqueKnots_u[j+1]*(hrefN-k)/(hrefN+1));
 					vector<double> uniqueKnots_v;
 					surfaces[i]->basis_v().knotsSimple(uniqueKnots_v);
-					for(uint j=0; j<uniqueKnots_v.size()-1; j++)
+					for(size_t j=0; j<uniqueKnots_v.size()-1; j++)
 						for(int k=0; k<hrefN; k++)
 							surfaces[i]->insertKnot_v(uniqueKnots_v[j]*(k+1)/(hrefN+1) + uniqueKnots_v[j+1]*(hrefN-k)/(hrefN+1));
 				}
@@ -303,7 +301,7 @@ int main(int argc, char **argv) {
 			if(uniform_u) {
 				vector<double> uniqueKnots_u;
 				surfaces[eff_patch]->basis_u().knotsSimple(uniqueKnots_u);
-				for(uint j=0; j<uniqueKnots_u.size()-1; j++)
+				for(size_t j=0; j<uniqueKnots_u.size()-1; j++)
 					for(int k=0; k<hrefN; k++)
 						model.knot_insert(eff_patch, 0, uniqueKnots_u[j]*(k+1)/(hrefN+1) + uniqueKnots_u[j+1]*(hrefN-k)/(hrefN+1));
 							
@@ -311,7 +309,7 @@ int main(int argc, char **argv) {
 			if(uniform_v) {
 				vector<double> uniqueKnots_v;
 				surfaces[eff_patch]->basis_v().knotsSimple(uniqueKnots_v);
-				for(uint j=0; j<uniqueKnots_v.size()-1; j++)
+				for(size_t j=0; j<uniqueKnots_v.size()-1; j++)
 					for(int k=0; k<hrefN; k++)
 						model.knot_insert(eff_patch, 1, uniqueKnots_v[j]*(k+1)/(hrefN+1) + uniqueKnots_v[j+1]*(hrefN-k)/(hrefN+1));
 			}

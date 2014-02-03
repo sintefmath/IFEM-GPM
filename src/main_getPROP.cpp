@@ -17,8 +17,6 @@
 
 #include <GoTools/trivariate/SplineVolume.h>
 
-typedef unsigned int uint;
-
 using namespace std;
 using namespace Go;
 

@@ -77,7 +77,7 @@ int main(int argc, char** argv)
   if (surface_model) {
     std::vector<SplineSurface*> out_surf;
 
-    for (size_t i = 0;i < in_surf.size();i++) {
+    for (i = 0;i < in_surf.size();i++) {
       SplineSurface* s_it = in_surf[i];
 
       // basis1 should be one degree higher than basis2 and C^p-1 continuous
@@ -95,12 +95,12 @@ int main(int argc, char** argv)
                   <<"         This may affect accuracy.\n"<< std::endl;
 
       // Compute parameter values of the Greville points
-      size_t i;
+      size_t k;
       std::vector<double> ug(b1.numCoefs()), vg(b2.numCoefs());
-      for (i = 0; i < ug.size(); i++)
-        ug[i] = b1.grevilleParameter(i);
-      for (i = 0; i < vg.size(); i++)
-        vg[i] = b2.grevilleParameter(i);
+      for (k = 0; k < ug.size(); k++)
+        ug[k] = b1.grevilleParameter(k);
+      for (k = 0; k < vg.size(); k++)
+        vg[k] = b2.grevilleParameter(k);
 
       // Evaluate the spline surface at all points
       std::vector<double> XYZ(ndim*ug.size()*vg.size());
@@ -117,7 +117,7 @@ int main(int argc, char** argv)
       s->write(std::cout);
     }
 
-    for (uint i = 0;i < out_surf.size();i++) {
+    for (i = 0;i < out_surf.size();i++) {
       delete in_surf[i];
       delete out_surf[i];
     }
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
   else {
     std::vector<SplineVolume*> out_vol; 
 
-    for (size_t i = 0;i < in_vol.size();i++) {
+    for (i = 0;i < in_vol.size();i++) {
       SplineVolume* v_it = in_vol[i];
 
       // basis1 should be one degree higher than basis2 and C^p-1 continuous
@@ -144,14 +144,14 @@ int main(int argc, char** argv)
                   <<"         This may affect accuracy.\n"<< std::endl;
 
       // Compute parameter values of the Greville points
-      size_t i;
+      size_t k;
       std::vector<double> ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
-      for (i = 0; i < ug.size(); i++)
-        ug[i] = b1.grevilleParameter(i);
-      for (i = 0; i < vg.size(); i++)
-        vg[i] = b2.grevilleParameter(i);
-      for (i = 0; i < wg.size(); i++)
-        wg[i] = b3.grevilleParameter(i);
+      for (k = 0; i < ug.size(); k++)
+        ug[k] = b1.grevilleParameter(k);
+      for (k = 0; i < vg.size(); k++)
+        vg[k] = b2.grevilleParameter(k);
+      for (k = 0; i < wg.size(); k++)
+        wg[k] = b3.grevilleParameter(k);
 
       // Evaluate the spline surface at all points
       std::vector<double> XYZ(ndim*ug.size()*vg.size()*wg.size());
@@ -168,7 +168,7 @@ int main(int argc, char** argv)
       v->write(std::cout);
     }
 
-    for (uint i = 0;i < out_vol.size();i++) {
+    for (i = 0;i < out_vol.size();i++) {
       delete in_vol[i];
       delete out_vol[i];
     }

@@ -32,13 +32,14 @@ int main(int argc, char** argv)
   bool surface_model = true;
   char* infile = 0;
 
-  for (int i = 1; i < argc; i++)
+  size_t i = 0;
+  for (i = 1; i < argc; i++)
     if (!infile)
       infile = argv[i];
     else
       std::cerr <<"  ** Unknown option ignored: "<< argv[i] << std::endl;
   
-  size_t i = 0;
+  i=0;
   while (i < strlen(infile) && isspace(infile[i])) i++;
   std::ifstream isp(infile+i);
 
@@ -79,7 +80,7 @@ int main(int argc, char** argv)
       (*s_it)->write(std::cout);
     }
   
-    for (uint i = 0;i < surf.size();i++) 
+    for (i = 0;i < surf.size();i++) 
       delete surf[i];
   }
   else {
@@ -90,7 +91,7 @@ int main(int argc, char** argv)
       (*v_it)->write(std::cout);
     }
 
-    for (uint i = 0;i < vol.size();i++) 
+    for (i = 0;i < vol.size();i++) 
       delete vol[i];
   }
 

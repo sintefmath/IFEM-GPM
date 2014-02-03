@@ -36,8 +36,6 @@
  */
 
 
-typedef unsigned int uint;
-
 using namespace std;
 using namespace Go;
 
@@ -269,7 +267,7 @@ int main(int argc, char **argv) {
 	cout << "Writing results to file..." << endl;
 	if(stl) {
 		string stlFile    = string(outputFile) + string(".stl");
-		ofstream outFile(stlFile);
+		ofstream outFile(stlFile.c_str());
 		writeSTL(outFile, bndryTet, pts);
 		outFile.close();
 		cout << "Results written to \"" << stlFile << "\"" << endl;
@@ -277,9 +275,9 @@ int main(int argc, char **argv) {
 		string nodeFile    = string(outputFile) + string("_nodes.m");
 		string elementFile = string(outputFile) + string("_element.m");
 		string bndryFile   = string(outputFile) + string("_bndry.m");
-		ofstream outFile1(nodeFile);
-		ofstream outFile2(elementFile);
-		ofstream outFile3(bndryFile);
+		ofstream outFile1(nodeFile.c_str());
+		ofstream outFile2(elementFile.c_str());
+		ofstream outFile3(bndryFile.c_str());
 		outFile1 << setprecision(16);
 	
 		for(Go::Point p : pts)
