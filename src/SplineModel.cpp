@@ -22,9 +22,9 @@
 using namespace std;
 
 SplineModel::SplineModel() {
-	sl2g = new surfGlobNumber[0];
-	vl2g = new volGlobNumber[0];
-	sl2g = new surfGlobNumber[0];
+	sl2g = NULL;
+	vl2g = NULL;
+	sl2g = NULL;
 	topology = new TopologySet();
 	volumetric_model = false;
 }
@@ -34,8 +34,8 @@ SplineModel::SplineModel() {
  * \param spline_surfaces All spline volumes to be considered part of this model
  *************************************************************************************/
 SplineModel::SplineModel(std::vector<SurfacePointer> &spline_surfaces) {
-	sl2g = new surfGlobNumber[0];
-	vl2g = new volGlobNumber[0];
+	sl2g = NULL;
+	vl2g = NULL;
 	topology = new TopologySet(spline_surfaces);
 	topology->buildTopology();
 	spline_surfaces_ = spline_surfaces;
@@ -47,8 +47,8 @@ SplineModel::SplineModel(std::vector<SurfacePointer> &spline_surfaces) {
  * \param spline_volumes All spline volumes to be considered part of this model
  *************************************************************************************/
 SplineModel::SplineModel(std::vector<VolumePointer> &spline_volumes) {
-	sl2g = new surfGlobNumber[0];
-	vl2g = new volGlobNumber[0];
+	sl2g = NULL;
+	vl2g = NULL;
 	topology = new TopologySet(spline_volumes);
 	topology->buildTopology();
 	spline_volumes_ = spline_volumes;
