@@ -1729,7 +1729,7 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 	bool openSetBlock = false;
 
 	/***************     WRITE IT IN THE INPUT-FORM, NOT REALLY USEFULL FOR PRODUCTION    ***********************/
-	os << "  <boundaryconditions>" << endl;
+  os << "  <topologysets>" << endl;
 
 	if(volumetric_model) {
 		for(f_it=topology->face_begin(); f_it != topology->face_end(); f_it++) {
@@ -1741,7 +1741,7 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"face\">" << endl;
 				}
-				os << "      <item patch=\"" << f->volume[0]->id << "\"> " << f->face[0] << " </item>" << endl;
+				os << "      <item patch=\"" << f->volume[0]->id+1 << "\">" << f->face[0]+1 << "</item>" << endl;
 			}
 		}
 		for(l_it=topology->line_begin(); l_it != topology->line_end(); l_it++) {
@@ -1755,7 +1755,7 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"edge\">" << endl;
 				}
-				os << "      <item patch=\"" << (*l->volume.begin())->id << "\"> " << numb[0] << " </item>" << endl;
+				os << "      <item patch=\"" << (*l->volume.begin())->id+1 << "\">" << numb[0]+1 << "</item>" << endl;
 			}
 		}
 		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
@@ -1768,7 +1768,7 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"vertex\">" << endl;
 				}
-				os << "      <item patch=\"" << (*c->volume.begin())->id << "\"> " << corner_id[0] << " </item>" << endl;
+				os << "      <item patch=\"" << (*c->volume.begin())->id+1 << "\">" << corner_id[0]+1 << "</item>" << endl;
 			}
 		}
 	} else { // SURFACE model
@@ -1783,7 +1783,9 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"edge\">" << endl;
 				}
-				os << "      <item patch=\"" << (*l->volume.begin())->id << "\"> " << numb[0] << " </item>" << endl;
+                                std::cout << l->volume.size() << std::endl;
+                                if (l->volume.size())
+                                  os << "      <item patch=\"" << (*l->volume.begin())->id+1 << "\">" << numb[0]+1 << "</item>" << endl;
 			}
 		}
 		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
@@ -1796,13 +1798,13 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"vertex\">" << endl;
 				}
-				os << "      <item patch=\"" << (*c->volume.begin())->id << "\"> " << corner_id[0] << " </item>" << endl;
+				os << "      <item patch=\"" << (*c->volume.begin())->id+1 << "\">" << corner_id[0]+1 << "</item>" << endl;
 			}
 		}
 	}
 	if(openSetBlock) os << "    </set>" << endl;
 
-	os << "  </boundaryconditions>" << endl;
+	os << "  </topologysets>" << endl;
 }
 
 void SplineModel::writeModelProperties(std::ostream &os) const {
