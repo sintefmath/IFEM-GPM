@@ -1783,9 +1783,8 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"edge\">" << endl;
 				}
-                                std::cout << l->volume.size() << std::endl;
-                                if (l->volume.size())
-                                  os << "      <item patch=\"" << (*l->volume.begin())->id+1 << "\">" << numb[0]+1 << "</item>" << endl;
+        if (l->face.size())
+          os << "      <item patch=\"" << (*l->face.begin())->id+1 << "\">" << numb[0]+1 << "</item>" << endl;
 			}
 		}
 		for(c_it=topology->vertex_begin(); c_it != topology->vertex_end(); c_it++) {
@@ -1798,7 +1797,8 @@ void SplineModel::writeModelXMLProperties(std::ostream &os) const {
 					openSetBlock = true;
 					os << "    <set name=\"" << activeString << "\" type=\"vertex\">" << endl;
 				}
-				os << "      <item patch=\"" << (*c->volume.begin())->id+1 << "\">" << corner_id[0]+1 << "</item>" << endl;
+        if (c->face.size())
+          os << "      <item patch=\"" << (*c->face.begin())->id+1 << "\">" << corner_id[0]+1 << "</item>" << endl;
 			}
 		}
 	}
