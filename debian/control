@@ -2,7 +2,7 @@ Source: ifem-gpm
 Priority: extra
 Maintainer: Arne Morten Kvarving <arne.morten.kvarving@sintef.no>
 Build-Depends: debhelper (>= 8.0.0), cmake, libgotools-core-dev,
-               libgotools-trivariate-dev, doxygen, libifem-cmakerules
+               libgotools-trivariate-dev, doxygen
 Standards-Version: 3.9.2
 Section: libs
 Homepage: https://github.com/SintefMath/IFEM-GPM
