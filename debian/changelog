@@ -1,23 +1,5 @@
-ifem-gpm (0.3.4-1~precise) precise; urgency=low
+ifem-gpm (0.3.6-1~trusty) trusty; urgency=medium
 
-  * New upstream version
+  * New version
 
- -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Wed, 11 Sep 2013 17:36:33 +0200
-
-ifem-gpm (0.3.3-1~precise) precise; urgency=low
-
-  * New upstream version
-
- -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Tue, 10 Sep 2013 13:27:44 +0200
-
-ifem-gpm (0.3.2-1~precise) precise; urgency=low
-
-  * New upstream version
-
- -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Thu, 05 Sep 2013 11:35:14 +0200
-
-ifem-gpm (0.3.1-1~precise) precise; urgency=low
-
-  * Initial release
-
- -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Tue, 09 Apr 2013 12:11:51 +0200
+ -- Arne Morten Kvarving <arne.morten.kvarving@sintef.no>  Tue, 24 Nov 2015 13:39:17 +0100

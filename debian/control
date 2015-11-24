@@ -5,7 +5,7 @@ Build-Depends: debhelper (>= 8.0.0), cmake, libgotools-core-dev,
                libgotools-trivariate-dev, doxygen, libifem-cmakerules
 Standards-Version: 3.9.2
 Section: libs
-Homepage: <insert the upstream URL, if relevant>
+Homepage: https://github.com/SintefMath/IFEM-GPM
 
 Package: libifem-gpm1-dev
 Section: libdevel

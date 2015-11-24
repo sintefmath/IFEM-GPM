@@ -130,7 +130,8 @@ ELSE(WIN32)
           DESTINATION include/GPM COMPONENT dev)
 
   # cmake modules
-  INSTALL(FILES cmake/Modules/GPMConfig.cmake
+  configure_file(cmake/GPMConfig.cmake.in GPMConfig.cmake)
+  INSTALL(FILES ${CMAKE_BINARY_DIR}/GPMConfig.cmake
           DESTINATION lib/GPM
           COMPONENT dev)
 ENDIF(WIN32)
