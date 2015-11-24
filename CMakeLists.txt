@@ -39,7 +39,7 @@ SET(LIBRARY_OUTPUT_PATH lib)
 # This line may be needed only on AMD 64 bit... @jbt
 # 091120: Adding this because GUV-plugins will need it. (J.O.)
 IF(NOT WIN32)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11")
 ENDIF(NOT WIN32)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GoTools_CXX_FLAGS}")
