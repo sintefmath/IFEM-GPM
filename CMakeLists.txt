@@ -131,7 +131,9 @@ ELSE(WIN32)
 
   # cmake modules
   configure_file(cmake/GPMConfig.cmake.in GPMConfig.cmake)
+  configure_file(cmake/GPMConfigVersion.cmake.in GPMConfigVersion.cmake)
   INSTALL(FILES ${CMAKE_BINARY_DIR}/GPMConfig.cmake
+                ${CMAKE_BINARY_DIR}/GPMConfigVersion.cmake
           DESTINATION lib/GPM
           COMPONENT dev)
 ENDIF(WIN32)
