@@ -743,42 +743,79 @@ void TopologySet::write(ostream &out) const {
 }
 
 void TopologySet::writeXML(ostream &out) const {
-	FaceSet::iterator it;
-	vector<Volume*>::iterator vit;
-	vector<int> faceId;
-	vector<int> allFaceId;
-	vector<int> allVolId;
-	out << "  <topology>" << endl;
-	for(it=face_.begin(); it != face_.end(); it++) {
-		int masterVol  = (**it).volume[0]->id;
-		allFaceId      = (**it).volume[0]->getSurfaceEnumeration(*it);
-		int masterFace = allFaceId[0];
-		for(int i=1; i<allFaceId.size(); i++) { // if this happens we have a periodic geometry
-			out << "    <connection master=\"" << masterVol +1 << "\""
-			    << " mface=\"" << masterFace                +1 << "\""
-			    << " slave=\"" << masterVol                 +1 << "\""
-			    << " sface=\"" << allFaceId[i]              +1 << "\"";
-			int orient = (**it).uv_flip[i]*4 + (**it).u_reverse[i]*2 + (**it).v_reverse[i]*1; // forms a 3bit mask of local orientation
-			if(orient != 0)
-				out << " orient=\"" << orient << "\"";
-			out << "/>\n";
-		}
-		for(int i=1; i<(**it).volume.size(); i++) {
-			if((**it).volume[i]->id == masterVol) continue;
-			allFaceId      = (**it).volume[i]->getSurfaceEnumeration(*it);
-			int slaveVol   = (**it).volume[i]->id;
-			for(int j=0; j<allFaceId.size(); j++) { // if this happens we have a periodic geometry
-				out << "    <connection master=\"" << masterVol +1<< "\""
-			    	<< " mface=\"" << masterFace                +1 << "\""
-			    	<< " slave=\"" << slaveVol                  +1 << "\""
-			    	<< " sface=\"" << allFaceId[j]              +1 << "\"";
-				int orient = (**it).uv_flip[i]*4 + (**it).u_reverse[i]*2 + (**it).v_reverse[i]*1; // forms a 3bit mask of local orientation
-				if(orient != 0)
-					out << " orient=\"" << orient << "\"";
-				out << "/>\n";
-			}
-		}
-	}
-	out << "  </topology>" << endl;
+        out << "  <topology>" << endl;
+        if (volumetric_model) {
+                FaceSet::iterator it;
+                vector<int> faceId;
+                vector<int> allFaceId;
+                vector<int> allVolId;
+                for(it=face_.begin(); it != face_.end(); it++) {
+                        int masterVol  = (**it).volume[0]->id;
+                        allFaceId      = (**it).volume[0]->getSurfaceEnumeration(*it);
+                        int masterFace = allFaceId[0];
+                        for(int i=1; i<allFaceId.size(); i++) { // if this happens we have a periodic geometry
+                                out << "    <connection master=\"" << masterVol +1 << "\""
+                                    << " mface=\"" << masterFace                +1 << "\""
+                                    << " slave=\"" << masterVol                 +1 << "\""
+                                    << " sface=\"" << allFaceId[i]              +1 << "\"";
+                                int orient = (**it).uv_flip[i]*4 + (**it).u_reverse[i]*2 + (**it).v_reverse[i]*1; // forms a 3bit mask of local orientation
+                                if(orient != 0)
+                                        out << " orient=\"" << orient << "\"";
+                                out << "/>\n";
+                        }
+                        for(int i=1; i<(**it).volume.size(); i++) {
+                                if((**it).volume[i]->id == masterVol) continue;
+                                allFaceId      = (**it).volume[i]->getSurfaceEnumeration(*it);
+                                int slaveVol   = (**it).volume[i]->id;
+                                for(int j=0; j<allFaceId.size(); j++) { // if this happens we have a periodic geometry
+                                        out << "    <connection master=\"" << masterVol +1<< "\""
+                                        << " mface=\"" << masterFace                +1 << "\""
+                                        << " slave=\"" << slaveVol                  +1 << "\""
+                                        << " sface=\"" << allFaceId[j]              +1 << "\"";
+                                        int orient = (**it).uv_flip[i]*4 + (**it).u_reverse[i]*2 + (**it).v_reverse[i]*1; // forms a 3bit mask of local orientation
+                                        if(orient != 0)
+                                                out << " orient=\"" << orient << "\"";
+                                        out << "/>\n";
+                                }
+                        }
+                }
+        } else if (surface_model) {
+                for(auto& it : line_) {
+                        int masterVol  = (*it->face.begin())->id;
+                        std::vector<int> dummy;
+                        std::vector<int> allEdgeId;
+                        (*it->face.begin())->getEdgeEnumeration(const_cast<Line*>(it), allEdgeId, dummy, dummy);
+                        int masterEdge = allEdgeId[0];
+                        for(int i=1; i<allEdgeId.size(); i++) { // if this happens we have a periodic geometry
+                                out << "    <connection master=\"" << masterVol +1 << "\""
+                                    << " medge=\"" << masterEdge                +1 << "\""
+                                    << " slave=\"" << masterVol                 +1 << "\""
+                                    << " sedge=\"" << allEdgeId[i]              +1 << "\"";
+                                int orient = 0;
+                                if(orient != 0)
+                                        out << " orient=\"" << orient << "\"";
+                                out << "/>\n";
+                        }
+                        for(auto& face : it->face) {
+                                int slaveVol   = face->id;
+                                if(slaveVol == masterVol)
+                                  continue;
+                                std::vector<int> dummy, parDir;
+                                face->getEdgeEnumeration(it, allEdgeId, dummy, parDir);
+
+                                for(int j=0; j<allEdgeId.size(); j++) { // if this happens we have a periodic geometry
+                                        out << "    <connection master=\"" << masterVol +1<< "\""
+                                        << " medge=\"" << masterEdge                +1 << "\""
+                                        << " slave=\"" << slaveVol                  +1 << "\""
+                                        << " sedge=\"" << allEdgeId[j]              +1 << "\"";
+                                        if(parDir[j] < 0)
+                                                out << " reverse=\"true\"";
+                                        out << "/>\n";
+                                }
+                        }
+                }
+
+        }
+        out << "  </topology>" << endl;
 }
 
